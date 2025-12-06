@@ -1,46 +1,65 @@
-import { createClient } from '@/utils/supabase/server'
-import { redirect } from 'next/navigation'
+'use client' // This must be a client component now
 
-export default async function DashboardPage() {
-    const supabase = await createClient()
+import { useState } from 'react'
+import CodeEditor from '@/components/CodeEditor'
+import Console from '@/components/Console'
+import usePyodide from '@/hooks/usePyodide'
+import { createClient } from '@/utils/supabase/client'
+import { useRouter } from 'next/navigation'
 
-    // 1. Check if user is logged in
-    const {
-        data: { user },
-    } = await supabase.auth.getUser()
+export default function DashboardPage() {
+    const [code, setCode] = useState("print('Hello from PACT!')\n\nfor i in range(5):\n    print(f'Counting: {i}')")
+    const { runPython, output, isLoading, isRunning } = usePyodide()
+    const router = useRouter()
+    const supabase = createClient()
 
-    if (!user) {
-        return redirect('/login')
-    }
-
-    // 2. Define the Sign Out Action
-    const signOut = async () => {
-        'use server'
-        const supabase = await createClient()
+    // Simple logout logic
+    const handleLogout = async () => {
         await supabase.auth.signOut()
-        return redirect('/login')
+        router.push('/login')
     }
 
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center p-10">
-            <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md border text-center">
-                <h1 className="text-3xl font-bold mb-4">Dashboard</h1>
+        <div className="min-h-screen bg-gray-50 flex flex-col">
+            {/* Header */}
+            <header className="bg-white border-b px-6 py-4 flex justify-between items-center shadow-sm">
+                <h1 className="text-xl font-bold text-gray-800 tracking-tight">PACT Workspace</h1>
+                <button
+                    onClick={handleLogout}
+                    className="text-sm text-red-600 hover:text-red-800 font-medium"
+                >
+                    Sign Out
+                </button>
+            </header>
 
-                <div className="bg-blue-50 p-4 rounded-md mb-6">
-                    <p className="text-gray-600">Logged in as:</p>
-                    <span className="font-mono text-blue-600 font-bold">{user.email}</span>
+            {/* Workspace Grid */}
+            <main className="flex-1 p-6 grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                {/* Left Col: Editor */}
+                <div className="flex flex-col gap-4">
+                    <div className="flex justify-between items-center">
+                        <h2 className="font-semibold text-gray-700">Python Editor</h2>
+                        <button
+                            onClick={() => runPython(code)}
+                            disabled={isLoading || isRunning}
+                            className={`px-6 py-2 rounded-md font-medium text-white transition-all ${isLoading || isRunning
+                                ? 'bg-gray-400 cursor-not-allowed'
+                                : 'bg-green-600 hover:bg-green-700 shadow-md hover:shadow-lg'
+                                }`}
+                        >
+                            {isRunning ? 'Running...' : 'Run Code ▶'}
+                        </button>
+                    </div>
+                    <CodeEditor initialCode={code} onChange={(val) => setCode(val || "")} />
                 </div>
 
-                {/* 3. The Sign Out Button Form */}
-                <form action={signOut}>
-                    <button
-                        className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded w-full transition duration-150"
-                        type="submit"
-                    >
-                        Sign Out
-                    </button>
-                </form>
-            </div>
+                {/* Right Col: Output */}
+                <div className="flex flex-col gap-4">
+                    <h2 className="font-semibold text-gray-700">Terminal</h2>
+                    <Console output={output} isLoading={isLoading} />
+                </div>
+
+            </main>
         </div>
     )
 }
