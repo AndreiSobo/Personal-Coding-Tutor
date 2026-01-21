@@ -19,13 +19,13 @@
 
 ## Project Overview
 
-**PACT (Personal AI Coding Tutor)** is a web-based interactive coding environment designed to help users learn programming through a custom fine-tuned small language model. The platform enables users to:
+**PACT (Personal AI Coding Tutor)** is a web-based interactive coding environment designed to help users learn programming. The platform enables users to:
 - Write and execute Python code directly in the browser
 - View real-time output in a terminal-style console
 - Authenticate securely with persistent sessions
 - Access their personalized coding workspace
 
-The frontend serves as an interactive IDE where users can practice coding problems, receive AI guidance, and iterate on solutions—all without needing local Python installation.
+The frontend serves as an interactive IDE where users can practice coding problems and iterate on solutions—all without needing local Python installation. The application is built with modern web technologies and runs Python entirely in the browser using WebAssembly, eliminating the need for backend code execution infrastructure.
 
 ---
 
@@ -756,16 +756,29 @@ npm run dev
 # Build for production
 npm run build
 
-# Start production server
+# Start production server (requires build first)
 npm start
 
-# Run linter
+# Run ESLint to check for code issues
 npm run lint
+
+# Type check with TypeScript (no emit)
+npx tsc --noEmit
 ```
+
+### Development Tips
+
+- **Hot Reload**: The dev server automatically reloads when you save files
+- **Type Checking**: VS Code provides real-time TypeScript errors
+- **Console Logs**: Check browser DevTools for client-side logs
+- **Server Logs**: Check terminal for server-side logs
+- **Clear Cache**: If Pyodide behaves oddly, clear browser cache
 
 ---
 
 ## Environment Variables Required
+
+Create a `.env.local` file in the project root:
 
 ```bash
 # Supabase Configuration
@@ -773,7 +786,19 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-Store these in `.env.local` (not committed to git).
+**How to get these values:**
+
+1. Go to your [Supabase Dashboard](https://supabase.com/dashboard)
+2. Select your project (or create a new one)
+3. Navigate to **Settings** → **API**
+4. Copy the **Project URL** (for `NEXT_PUBLIC_SUPABASE_URL`)
+5. Copy the **anon/public key** (for `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
+
+**Important Notes:**
+- The `.env.local` file is git-ignored and won't be committed
+- The `NEXT_PUBLIC_` prefix makes these variables accessible in the browser
+- The anon key is safe to expose—it only allows operations permitted by your database's Row Level Security (RLS) policies
+- Never commit the service role key to git (we don't use it in this project)
 
 ---
 
