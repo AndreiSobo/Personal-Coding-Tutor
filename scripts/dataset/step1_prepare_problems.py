@@ -23,22 +23,39 @@ def main():
     
     print(f"Loaded {len(ds)} total problems")
     
-    # Filter for problems with Python solutions
+    # Debug: Print first row to understand structure
+    # for row in ds:
+    #     print(f"type: {type(row)},")
+    #     print("---")
+    #     print(row)
+    #     break
+    
+    # Filter for problems with necessary fields
     problems = []
     for row in ds:
-        # Check if problem has necessary fields
-        python_solution = row.get('python') or row.get('python_solution') or row.get('code_python')
-        content = row.get('content') or row.get('description') or row.get('question')
+        # Check if problem has necessary fields based on the actual dataset structure
+        task_id = row.get('task_id')
+        problem_description = row.get('problem_description')
+        starter_code = row.get('starter_code')
+        completion = row.get('completion')
         
-        if python_solution and content:
+        if task_id and problem_description and starter_code and completion:
             problems.append({
-                'id': row.get('id') or row.get('question_id') or row.get('frontend_question_id'),
-                'title': row.get('title', 'Unknown'),
-                'slug': row.get('slug') or row.get('title_slug', ''),
+                'id': row.get('question_id'),
+                'task_id': task_id,
+                'title': task_id.replace('-', ' ').title(),  # Convert task_id to readable title
+                'slug': task_id,
                 'difficulty': row.get('difficulty', 'Medium'),
-                'description': content,
-                'solution': python_solution,
-                'tags': row.get('tags') or row.get('topicTags') or [],
+                'description': problem_description,
+                'starter_code': starter_code,
+                'solution': completion,
+                'tags': row.get('tags', []),
+                'entry_point': row.get('entry_point', ''),
+                'test': row.get('test', ''),
+                'prompt': row.get('prompt', ''),
+                'query': row.get('query', ''),
+                'response': row.get('response', ''),
+                'input_output': row.get('input_output', []),
             })
     
     print(f"Found {len(problems)} problems with Python solutions")
@@ -76,10 +93,14 @@ def main():
     # Print a sample
     print("\n--- Sample Problem ---")
     sample = selected[0]
+    print(f"Task ID: {sample['task_id']}")
     print(f"Title: {sample['title']}")
     print(f"Difficulty: {sample['difficulty']}")
     print(f"Tags: {sample['tags']}")
     print(f"Description preview: {sample['description'][:200]}...")
+    print(f"Entry point: {sample['entry_point']}")
+    print(f"Has tests: {bool(sample['test'])}")
+    print(f"Has input/output examples: {len(sample['input_output'])} examples")
 
 if __name__ == "__main__":
     main()
