@@ -45,16 +45,26 @@ Evaluate this training example on each criterion:
 
 1. **buggy_code_is_realistic**: Is this a mistake a real student would plausibly make? (not artificially stupid or random)
 
-2. **buggy_code_is_actually_buggy**: Does the code actually contain the described bug? Would it fail or produce wrong output?
+2. **buggy_code_is_actually_buggy**: Does the code ACTUALLY fail or produce wrong output for at least one test case? 
+   - Trace through the code mentally to verify it fails
+   - Don't accept "suboptimal" code that still works correctly
 
 3. **hint_is_socratic**: Does the hint guide through questions/suggestions rather than telling the answer directly?
 
-4. **hint_contains_no_code**: Is the hint completely free of code snippets, variable names from the solution, or programming syntax?
+4. **hint_contains_no_code**: Is the hint completely free of:
+   - Code snippets or syntax (brackets, quotes, operators)
+   - Variable names from the code/solution (e.g., 'stack', 'nums', 'left', 'i')
+   - Specific function names from the code
+   - Code-like input examples (e.g., [1,2,3], "abc")
+   
+   ALLOWED: General terms like "the loop", "the array", "the condition", "first element"
+   NOT ALLOWED: Specific identifiers like "stack", "nums", "target"
 
 5. **hint_avoids_direct_fix**: Does the hint avoid phrases like:
    - "change X to Y"
    - "you need to"
    - "you should"
+   - "add a check for"
    - "the problem is"
    - "your error is"
 
@@ -79,13 +89,13 @@ Respond with ONLY a JSON object, no other text:
 
 Guidelines for overall_quality:
 - "pass": All criteria are true
-- "needs_revision": Most criteria true, but hint needs improvement (fixable)
-- "reject": Fundamental problems with buggy code or hint is unsalvageable
+- "needs_revision": Most criteria true, but hint needs improvement (fixable with minor changes)
+- "reject": Fundamental problems - buggy code isn't actually buggy OR hint reveals the solution OR multiple severe violations
 """
 
 
 def validate_example(example: Dict, max_retries: int = 3) -> Dict:
-    """Validate a single training example using GPT-4."""
+    """Validate a single training example using GPT-5."""
     
     prompt = VALIDATION_PROMPT.format(
         problem_title=example['problem_title'],
@@ -99,9 +109,9 @@ def validate_example(example: Dict, max_retries: int = 3) -> Dict:
     for attempt in range(max_retries):
         try:
             response = client.chat.completions.create(
-                model="gpt-4o",
+                model="gpt-5.2",
                 messages=[{"role": "user", "content": prompt}],
-                max_tokens=500,
+                max_completion_tokens=500,
                 temperature=0  # Deterministic for consistency
             )
             
