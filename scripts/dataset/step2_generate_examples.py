@@ -44,11 +44,35 @@ For each example, provide:
 3. `bug_explanation`: What's actually wrong (this is for our records, NOT shown to student)
 4. `socratic_hint`: A guiding hint that helps WITHOUT revealing the answer
 
-## CRITICAL: BUGGY CODE MUST ACTUALLY FAIL
-The buggy code MUST produce wrong output or crash for at least one test case.
-- ✅ GOOD: Code that gives wrong answer for some inputs
-- ❌ BAD: Code that works but is "suboptimal" or "not elegant"
-- ❌ BAD: Edge cases that the code actually handles correctly
+⚠️ THE CODE MUST PRODUCE WRONG OUTPUT OR CRASH - NOT JUST BE "SUBOPTIMAL" ⚠️
+
+ACCEPTABLE BUGS (code that FAILS):
+✅ Off-by-one that causes IndexError or wrong result
+✅ Missing edge case check that causes crash
+✅ Wrong comparison operator that returns incorrect answer
+✅ Logic error that fails test cases
+
+UNACCEPTABLE "BUGS" (code that works):
+❌ Nested loops that are O(n²) but return correct answer
+❌ Different but valid approach (e.g., returning [i,j] vs [j,i] when both valid)
+❌ Edge cases the code actually handles correctly
+❌ "Suboptimal" solutions that still pass all test cases
+
+## VERIFICATION STEP
+Before submitting each example, mentally trace the buggy code with a test case.
+If the code produces the CORRECT output, IT'S NOT A BUG - create a different example.
+
+Example - Two Sum problem with target=6, nums=[3,3]:
+❌ BAD: Using nested loops (i=0 to n, j=0 to n with i!=j check)
+   → Still returns [0,1] correctly! Not a real bug.
+✅ GOOD: Storing before checking, causing [0,0] return
+   → Returns wrong answer! Real bug.
+
+Example - Palindrome with x=121:
+❌ BAD: Using slower string reversal
+   → Still returns true correctly! Not a real bug.
+✅ GOOD: Comparing s[i] with s[len(s)-i] without -1
+   → IndexError! Real bug.
 
 TEST YOUR BUGS: Mentally trace through the buggy code with test cases to confirm it fails.
 
@@ -212,6 +236,30 @@ def main():
     
     with open(input_path, 'r', encoding='utf-8') as f:
         problems = json.load(f)
+
+    retry_path = '../data/retry_problem_ids.json'
+    if os.path.exists(retry_path):
+        print("🔄 RETRY MODE DETECTED")
+        print("=" * 60)
+        
+        with open(retry_path, 'r', encoding='utf-8') as f:
+            retry_problems = json.load(f)
+        
+        retry_ids = [p['id'] for p in retry_problems]
+        
+        # Filter to only retry problems
+        problems = [p for p in problems if p['id'] in retry_ids]
+        
+        print(f"Regenerating {len(problems)} problems that had high rejection rates:")
+        for rp in retry_problems:
+            print(f"  - {rp['title']} ({rp['rejections']}/3 rejected)")
+        print("=" * 60)
+        
+        # Rename output to avoid overwriting
+        output_path = '../data/generated_examples_retry.json'
+    else:
+        print(f"Loaded {len(problems)} problems")
+        output_path = '../data/generated_examples_raw.json'
     
     print(f"Loaded {len(problems)} problems")
     print("Generating training examples using Claude...")
@@ -220,7 +268,7 @@ def main():
     all_examples = []
     failed_problems = []
     
-    for i, problem in enumerate(problems[:10]):
+    for i, problem in enumerate(problems):
         print(f"[{i+1}/{len(problems)}] {problem['title']}")
 
         examples = generate_examples(problem)
