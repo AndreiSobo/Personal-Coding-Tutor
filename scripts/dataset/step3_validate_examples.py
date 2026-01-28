@@ -1,7 +1,7 @@
 """
-Step 3: Validate Examples using GPT-4
+Step 3: Validate Examples using GPT-5.2
 ======================================
-This script uses GPT-4 to validate the generated training examples.
+This script uses GPT-5.2 to validate the generated training examples.
 Using a different model for validation helps catch systematic errors.
 
 Input: data/generated_examples_raw.json
@@ -50,23 +50,26 @@ Evaluate this training example on each criterion:
    - Don't accept "suboptimal" code that still works correctly
 
 3. **hint_is_socratic**: Does the hint guide through questions/suggestions rather than telling the answer directly?
-
-4. **hint_contains_no_code**: Is the hint completely free of:
-   - Code snippets or syntax (brackets, quotes, operators)
-   - Variable names from the code/solution (e.g., 'stack', 'nums', 'left', 'i')
-   - Specific function names from the code
-   - Code-like input examples (e.g., [1,2,3], "abc")
    
-   ALLOWED: General terms like "the loop", "the array", "the condition", "first element"
-   NOT ALLOWED: Specific identifiers like "stack", "nums", "target"
+4.   ALLOWED - General programming concepts:
+   - Generic structural terms: "the loop", "the condition", "the data structure"
+   - Generic operation terms: "storing", "checking", "comparing", "adding"
+   - Conceptual terms: "complement", "the current element", "the comparison"
+   - Positional terms: "before", "after", "first", "last"
+   - Natural examples: "numbers ending in zero", "the empty case"
+
 
 5. **hint_avoids_direct_fix**: Does the hint avoid phrases like:
-   - "change X to Y"
-   - "you need to"
-   - "you should"
-   - "add a check for"
-   - "the problem is"
-   - "your error is"
+   - "change X to Y" / "replace X with Y"
+   - "add/remove line X"
+   - "the fix is..."
+   - "you must do X"
+   
+   ALLOWED - Exploratory language:
+   - "What would happen if we change X to Y" (encourages thought experiment)
+   - "Consider checking/storing/comparing..." (suggests exploration)
+   - "Think about when..." (prompts reflection)
+   - Questions about order: "When do you check vs store?"
 
 6. **hint_is_helpful**: Would this hint actually help a stuck student make progress?
 
@@ -78,7 +81,6 @@ Respond with ONLY a JSON object, no other text:
   "buggy_code_is_realistic": true or false,
   "buggy_code_is_actually_buggy": true or false,
   "hint_is_socratic": true or false,
-  "hint_contains_no_code": true or false,
   "hint_avoids_direct_fix": true or false,
   "hint_is_helpful": true or false,
   "hint_matches_bug": true or false,
@@ -144,21 +146,38 @@ def main():
     # Check for API key
     if not os.environ.get('OPENAI_API_KEY'):
         print("Error: OPENAI_API_KEY not found in environment")
-        print("Create a .env file in the scripts/ directory with:")
-        print("  OPENAI_API_KEY=your-key-here")
         return
     
-    # Load generated examples
-    input_path = '../data/generated_examples_raw.json'
+    # retry mode
+    retry_mode = os.path.exists('../data/retry_problem_ids.json')
+
+    if retry_mode:
+        print("🔄 RETRY MODE: Validating regenerated examples")
+        input_path = '../data/generated_examples_RETRY.json'
+        
+        # Output to separate files
+        output_passed = '../data/examples_passed_RETRY.json'
+        output_needs_revision = '../data/examples_needs_revision_RETRY.json'
+        output_rejected = '../data/examples_rejected_RETRY.json'
+    else:
+        input_path = '../data/generated_examples_raw.json'
+        
+        # Normal output files
+        output_passed = '../data/examples_passed.json'
+        output_needs_revision = '../data/examples_needs_revision.json'
+        output_rejected = '../data/examples_rejected.json'
+    
     if not os.path.exists(input_path):
-        print(f"Error: {input_path} not found. Run step2_generate_examples.py first.")
+        print(f"Error: {input_path} not found.")
         return
     
     with open(input_path, 'r', encoding='utf-8') as f:
         examples = json.load(f)
     
     print(f"Loaded {len(examples)} examples to validate")
-    print("Validating using GPT-4...")
+
+
+    print("Validating using GPT-5.2")
     print("-" * 50)
     
     validated_examples = []
@@ -192,20 +211,26 @@ def main():
             print(f"    ? Validation error")
         
         # Save incrementally
-        with open('../data/validated_examples.json', 'w', encoding='utf-8') as f:
+        if retry_mode:
+            incremental_path = '../data/validated_examples_RETRY.json'
+        else:
+            incremental_path = '../data/validated_examples.json'
+
+        with open(incremental_path, 'w', encoding='utf-8') as f:
             json.dump(validated_examples, f, indent=2, ensure_ascii=False)
-        
+
+
         # Rate limiting
         time.sleep(0.5)
     
     # Save categorized results
-    with open('../data/examples_passed.json', 'w', encoding='utf-8') as f:
+    with open(output_passed, 'w', encoding='utf-8') as f:
         json.dump(passed, f, indent=2, ensure_ascii=False)
     
-    with open('../data/examples_needs_revision.json', 'w', encoding='utf-8') as f:
+    with open(output_needs_revision, 'w', encoding='utf-8') as f:
         json.dump(needs_revision, f, indent=2, ensure_ascii=False)
     
-    with open('../data/examples_rejected.json', 'w', encoding='utf-8') as f:
+    with open(output_rejected, 'w', encoding='utf-8') as f:
         json.dump(rejected, f, indent=2, ensure_ascii=False)
     
     # Summary
@@ -219,11 +244,12 @@ def main():
     print(f"  ✗ Rejected:       {len(rejected):4d} ({100*len(rejected)/total:.1f}%)")
     print(f"  ? Errors:         {len(errors):4d} ({100*len(errors)/total:.1f}%)")
     
-    print("\nOutput files:")
-    print("  - data/examples_passed.json")
-    print("  - data/examples_needs_revision.json")
-    print("  - data/examples_rejected.json")
+    print(f"\n  Output files:")
+    print(f"  - {output_passed}")
+    print(f"  - {output_needs_revision}")
+    print(f"  - {output_rejected}")
     
+
     # Show common issues
     all_issues = []
     for ex in needs_revision + rejected:

@@ -70,7 +70,6 @@ def main():
     print(f"  Hard: {len(hard)}")
     
     # Select a balanced subset
-    # Adjust these numbers based on how many training examples you want
     # 100 problems × 3 examples each = 300 training examples
     num_easy = min(50, len(easy))
     num_medium = min(30, len(medium))

@@ -11,6 +11,7 @@ Output: data/training_data.jsonl (JSONL format for training)
 import json
 import os
 from typing import Dict
+from collections import Counter
 
 # Minimal system prompt - fine-tuning handles the behaviour
 SYSTEM_PROMPT = "You are PACT, a Socratic Python coding tutor. Help students learn through guided questions and hints, not direct answers."
@@ -89,13 +90,24 @@ def main():
     # Load final dataset
     input_path = '../data/training_dataset_final.json'
     if not os.path.exists(input_path):
-        print(f"Error: {input_path} not found. Run step4_revise_examples.py first.")
+        print(f"Error: {input_path} not found.")
         return
     
     with open(input_path, 'r', encoding='utf-8') as f:
         examples = json.load(f)
     
     print(f"Loaded {len(examples)} examples")
+
+    # error type distribution
+    error_types = Counter(ex['error_type'] for ex in examples)
+    print("\nError type distribution:")
+    for error_type, count in error_types.most_common():
+        print(f"  {error_type}: {count}")
+
+    # Remove validation metadata
+    for example in examples:
+        example.pop('validation', None)
+
     print("Converting to Qwen chat format...")
     
     # Convert all examples
@@ -106,7 +118,7 @@ def main():
         formatted.append(formatted_example)
     
     # Save as JSONL (one JSON object per line - required format for training)
-    output_path = '../data/training_data.jsonl'
+    output_path = '../data/qwen_training_data.jsonl'
     with open(output_path, 'w', encoding='utf-8') as f:
         for item in formatted:
             f.write(json.dumps(item, ensure_ascii=False) + '\n')
@@ -114,7 +126,7 @@ def main():
     print(f"Saved {len(formatted)} examples to {output_path}")
     
     # Also save a few samples for manual inspection
-    samples_path = '../data/training_samples.json'
+    samples_path = '../data/qwen_training_samples.json'
     with open(samples_path, 'w', encoding='utf-8') as f:
         json.dump(formatted[:5], f, indent=2, ensure_ascii=False)
     
