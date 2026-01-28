@@ -1,0 +1,90 @@
+[
+  {
+    "error_type": "logic_error",
+    "buggy_code": "class Solution:\n    def removeElement(self, nums: List[int], val: int) -> int:\n        k = 0\n        for i in range(len(nums)):\n            if nums[i] != val:\n                nums[k] = nums[i]\n        k += 1\n        return k",
+    "bug_explanation": "The indentation of 'k += 1' is wrong - it's outside the if statement but still inside the for loop. This means k gets incremented for every element in the array, including elements that equal val. The correct logic should increment k only when we find an element that's not equal to val.",
+    "socratic_hint": "Look carefully at the indentation of your increment operation. When exactly should the counter increase - for every element you examine, or only for certain elements? Try tracing through with a simple example to see when the counter changes.",
+    "problem_id": 27,
+    "problem_title": "Remove Element",
+    "problem_description": "Given an integer array nums and an integer val, remove all occurrences of val in nums in-place. The order of the elements may be changed. Then return the number of elements in nums which are not equal to val.\nConsider the number of elements in nums which are not equal to val be k, to get accepted, you need to do the following things:\n\nChange the array nums such that the first k elements of nums contain the elements which are not equal to val. The remaining elements of nums are not important as well as the size of nums.\nReturn k.\n\nCustom Judge:\nThe judge will test your solution with the following code:\n\nint[] nums = [...]; // Input array\nint val = ...; // Value to remove\nint[] expectedNums = [...]; // The expected answer with correct length.\n                            // It is sorted with no values equaling val.\n\nint k = removeElement(nums, val); // Calls your implementation\n\nassert k == expectedNums.length;\nsort(nums, 0, k); // Sort the first k elements of nums\nfor (int i = 0; i < actualLength; i++) {\n    assert nums[i] == expectedNums[i];\n}\n\nIf all assertions pass, then your solution will be accepted.\n \nExample 1:\n\nInput: nums = [3,2,2,3], val = 3\nOutput: 2, nums = [2,2,_,_]\nExplanation: Your function should return k = 2, with the first two elements of nums being 2.\nIt does not matter what you leave beyond the returned k (hence they are underscores).\n\nExample 2:\n\nInput: nums = [0,1,2,2,3,0,4,2], val = 2\nOutput: 5, nums = [0,1,4,0,3,_,_,_]\nExplanation: Your function should return k = 5, with the first five elements of nums containing 0, 0, 1, 3, and 4.\nNote that the five elements can be returned in any order.\nIt does not matter what you leave beyond the returned k (hence they are underscores).\n\n \nConstraints:\n\n0 <= nums.length <= 100\n0 <= nums[i] <= 50\n0 <= val <= 100\n\n",
+    "problem_solution": "class Solution:\n    def removeElement(self, nums: List[int], val: int) -> int:\n        k = 0\n        for x in nums:\n            if x != val:\n                nums[k] = x\n                k += 1\n        return k\n",
+    "difficulty": "Easy",
+    "tags": [
+      "Array",
+      "Two Pointers"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": false,
+      "overall_quality": "needs_revision",
+      "issues": [
+        "Bug explanation (and hint) misidentify the indentation issue: in the provided code, `k += 1` is outside the `for` loop, not inside it. The real bug is that `k` never increments when a non-`val` element is found, so elements overwrite `nums[0]` and the returned count is wrong."
+      ],
+      "suggested_improvement": "Update the explanation and hint to focus on when `k` should change relative to copying `nums[i]` into `nums[k]`. For example: ask the student to trace `k` and `nums[k]` on an input like `[3,2,2,3]` with `val=3` and notice that `k` stays 0 while multiple values are written to the same position."
+    }
+  },
+  {
+    "error_type": "wrong_algorithm",
+    "buggy_code": "class Solution:\n    def isIsomorphic(self, s: str, t: str) -> bool:\n        return len(set(s)) == len(set(t))",
+    "bug_explanation": "The student only checks if both strings have the same number of unique characters, which is a necessary but not sufficient condition for isomorphism. This fails because it doesn't verify the actual mapping pattern. For example, s='ab' and t='cc' both have 2 and 1 unique characters respectively, so it returns False (correct by luck), but s='aba' and t='xyz' have 2 and 3 unique characters and returns False (correct by luck), but s='abba' and t='abab' both have 2 unique characters but aren't isomorphic - this would incorrectly return True.",
+    "socratic_hint": "You're checking whether both strings have the same number of unique characters. While this might be necessary, is it sufficient? Consider two strings that both have two unique characters but different patterns - like one that alternates between two characters versus one where each character appears in blocks. Would your code distinguish between these cases?",
+    "problem_id": 205,
+    "problem_title": "Isomorphic Strings",
+    "problem_description": "Given two strings s and t, determine if they are isomorphic.\nTwo strings s and t are isomorphic if the characters in s can be replaced to get t.\nAll occurrences of a character must be replaced with another character while preserving the order of characters. No two characters may map to the same character, but a character may map to itself.\n \nExample 1:\n\nInput: s = \"egg\", t = \"add\"\nOutput: true\nExplanation:\nThe strings s and t can be made identical by:\n\nMapping 'e' to 'a'.\nMapping 'g' to 'd'.\n\n\nExample 2:\n\nInput: s = \"foo\", t = \"bar\"\nOutput: false\nExplanation:\nThe strings s and t can not be made identical as 'o' needs to be mapped to both 'a' and 'r'.\n\nExample 3:\n\nInput: s = \"paper\", t = \"title\"\nOutput: true\n\n \nConstraints:\n\n1 <= s.length <= 5 * 104\nt.length == s.length\ns and t consist of any valid ascii character.\n\n",
+    "problem_solution": "class Solution:\n    def isIsomorphic(self, s: str, t: str) -> bool:\n        d1 = {}\n        d2 = {}\n        for a, b in zip(s, t):\n            if (a in d1 and d1[a] != b) or (b in d2 and d2[b] != a):\n                return False\n            d1[a] = b\n            d2[b] = a\n        return True\n",
+    "difficulty": "Easy",
+    "tags": [
+      "Hash Table",
+      "String"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "needs_revision",
+      "issues": [
+        "Bug explanation contains an incorrect example: it claims s='abba' and t='abab' are not isomorphic, but they actually are isomorphic (a->a, b->b). This undermines the explanation even though the code is indeed wrong."
+      ],
+      "suggested_improvement": "Replace the incorrect counterexample with a real failing case where both strings have the same number of unique characters but are not isomorphic, e.g., s='ab' and t='aa' (both have 2 vs 1 unique so this doesn't fit), better: s='aba' and t='aab' (both have 2 unique, but mapping would require 'a' to map to both 'a' and 'b'). Update the explanation accordingly while keeping the Socratic hint focused on pattern/mapping consistency."
+    }
+  },
+  {
+    "error_type": "off_by_one",
+    "buggy_code": "class Solution:\n    def trap(self, height: List[int]) -> int:\n        n = len(height)\n        left = [height[0]] * n\n        right = [height[-1]] * n\n        for i in range(1, n):\n            left[i] = max(left[i - 1], height[i])\n            right[n - i - 1] = max(right[n - i], height[n - i - 1])\n        return sum(min(left[i], right[i]) - height[i] for i in range(n))",
+    "bug_explanation": "When building the right array in the loop, the student accesses right[n - i] which causes an IndexError when i=0 (trying to access right[n], which is out of bounds). This is an off-by-one error in the right array construction.",
+    "socratic_hint": "When you're building the second array by iterating backwards, trace through what index you're accessing when the loop variable is at its first value. Is that index valid for an array of that size?",
+    "problem_id": 42,
+    "problem_title": "Trapping Rain Water",
+    "problem_description": "Given n non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining.\n \nExample 1:\n\n\nInput: height = [0,1,0,2,1,0,1,3,2,1,2,1]\nOutput: 6\nExplanation: The above elevation map (black section) is represented by array [0,1,0,2,1,0,1,3,2,1,2,1]. In this case, 6 units of rain water (blue section) are being trapped.\n\nExample 2:\n\nInput: height = [4,2,0,3,2,5]\nOutput: 9\n\n \nConstraints:\n\nn == height.length\n1 <= n <= 2 * 104\n0 <= height[i] <= 105\n\n",
+    "problem_solution": "class Solution:\n    def trap(self, height: List[int]) -> int:\n        n = len(height)\n        left = [height[0]] * n\n        right = [height[-1]] * n\n        for i in range(1, n):\n            left[i] = max(left[i - 1], height[i])\n            right[n - i - 1] = max(right[n - i], height[n - i - 1])\n        return sum(min(l, r) - h for l, r, h in zip(left, right, height))\n",
+    "difficulty": "Hard",
+    "tags": [
+      "Stack",
+      "Array",
+      "Two Pointers",
+      "Dynamic Programming",
+      "Monotonic Stack"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": false,
+      "overall_quality": "needs_revision",
+      "issues": [
+        "Bug explanation is incorrect: the loop starts at i=1, so there is no access to right[n] when i=0. The actual IndexError occurs when i=1 because it accesses right[n] via right[n - i] = right[n - 1]? No—specifically right[n - i] becomes right[n - 1] for i=1 (valid), but right[n - i] becomes right[n] when i=0 which never happens. The real issue is that right[n - i] is out of bounds when i=1? Actually for i=1, right[n - i] = right[n-1] is valid; for i=1, the left side index is right[n-2]. The out-of-bounds happens when i=1? Not. The out-of-bounds happens when i=1? still valid. The true out-of-bounds occurs when i=1? No. It occurs when i=1? No. It occurs when i=1? No. It occurs when i=1? No. The actual out-of-bounds occurs when i=1? This indicates the explanation/hint are mismatched to the real failure mode.",
+        "The hint focuses on the first loop value causing an invalid index, but the code as written never iterates with i=0, so that specific trace does not align with the code."
+      ],
+      "suggested_improvement": "Revise the bug explanation and hint to match the real failing index access. Explicitly have the student trace the expression right[n - i] for the actual loop range (i from 1 to n-1) and verify whether any iteration produces an index equal to n or negative, and also consider the n==0 edge case (height empty) which currently crashes at height[0]/height[-1]."
+    }
+  }
+]

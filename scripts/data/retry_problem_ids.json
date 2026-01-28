@@ -1,0 +1,112 @@
+[
+  {
+    "id": 7,
+    "title": "Reverse Integer",
+    "rejections": 3
+  },
+  {
+    "id": 15,
+    "title": "3Sum",
+    "rejections": 3
+  },
+  {
+    "id": 33,
+    "title": "Search In Rotated Sorted Array",
+    "rejections": 3
+  },
+  {
+    "id": 1,
+    "title": "Two Sum",
+    "rejections": 2
+  },
+  {
+    "id": 26,
+    "title": "Remove Duplicates From Sorted Array",
+    "rejections": 2
+  },
+  {
+    "id": 169,
+    "title": "Majority Element",
+    "rejections": 2
+  },
+  {
+    "id": 226,
+    "title": "Invert Binary Tree",
+    "rejections": 2
+  },
+  {
+    "id": 231,
+    "title": "Power Of Two",
+    "rejections": 2
+  },
+  {
+    "id": 8,
+    "title": "String To Integer Atoi",
+    "rejections": 2
+  },
+  {
+    "id": 18,
+    "title": "4Sum",
+    "rejections": 2
+  },
+  {
+    "id": 29,
+    "title": "Divide Two Integers",
+    "rejections": 2
+  },
+  {
+    "id": 43,
+    "title": "Multiply Strings",
+    "rejections": 2
+  },
+  {
+    "id": 50,
+    "title": "Powx N",
+    "rejections": 2
+  },
+  {
+    "id": 23,
+    "title": "Merge K Sorted Lists",
+    "rejections": 2
+  },
+  {
+    "id": 25,
+    "title": "Reverse Nodes In K Group",
+    "rejections": 2
+  },
+  {
+    "id": 30,
+    "title": "Substring With Concatenation Of All Words",
+    "rejections": 2
+  },
+  {
+    "id": 37,
+    "title": "Sudoku Solver",
+    "rejections": 2
+  },
+  {
+    "id": 44,
+    "title": "Wildcard Matching",
+    "rejections": 2
+  },
+  {
+    "id": 65,
+    "title": "Valid Number",
+    "rejections": 2
+  },
+  {
+    "id": 68,
+    "title": "Text Justification",
+    "rejections": 2
+  },
+  {
+    "id": 85,
+    "title": "Maximal Rectangle",
+    "rejections": 2
+  },
+  {
+    "id": 87,
+    "title": "Scramble String",
+    "rejections": 2
+  }
+]

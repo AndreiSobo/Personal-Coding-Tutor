@@ -1,0 +1,948 @@
+[
+  {
+    "error_type": "logic_error",
+    "buggy_code": "class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        d = {}\n        for i, x in enumerate(nums):\n            d[x] = i\n            if (y := target - x) in d:\n                return [d[y], i]\n        return []",
+    "bug_explanation": "The student stores the current element in the dictionary before checking if its complement exists. This causes the function to return [i, i] when an element is half of the target (e.g., nums=[3,3], target=6 returns [0,0] instead of [0,1], and nums=[3,2,4], target=6 would incorrectly match 3 with itself if checking happened after storing).",
+    "socratic_hint": "Think about the order of operations in your loop. When you store the current element and then immediately check for its complement, what could happen if the current element itself equals its complement? Try tracing through an example where two identical numbers should be paired together.",
+    "test_input": "[3,3], target=6",
+    "problem_id": 1,
+    "problem_title": "Two Sum",
+    "problem_description": "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.\nYou can return the answer in any order.\n \nExample 1:\n\nInput: nums = [2,7,11,15], target = 9\nOutput: [0,1]\nExplanation: Because nums[0] + nums[1] == 9, we return [0, 1].\n\nExample 2:\n\nInput: nums = [3,2,4], target = 6\nOutput: [1,2]\n\nExample 3:\n\nInput: nums = [3,3], target = 6\nOutput: [0,1]\n\n \nConstraints:\n\n2 <= nums.length <= 104\n-109 <= nums[i] <= 109\n-109 <= target <= 109\nOnly one valid answer exists.\n\n \nFollow-up: Can you come up with an algorithm that is less than O(n2) time complexity?",
+    "problem_solution": "class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        d = {}\n        for i, x in enumerate(nums):\n            if (y := target - x) in d:\n                return [d[y], i]\n            d[x] = i\n",
+    "difficulty": "Easy",
+    "tags": [
+      "Array",
+      "Hash Table"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "edge_case",
+    "buggy_code": "class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        d = {}\n        for i, x in enumerate(nums):\n            if (y := target - x) in d:\n                return [d[y], i]\n            d[x] = i\n        return None",
+    "bug_explanation": "The function returns None instead of an empty list when no solution is found. While the problem guarantees a solution exists, returning None causes a type error since the expected return type is List[int]. This violates the function signature contract.",
+    "socratic_hint": "Look at what your function returns when the loop completes without finding a pair. Does this match the expected return type specified in the function signature? What type of value should always be returned?",
+    "test_input": "[1,2], target=10 (hypothetically if no solution existed)",
+    "problem_id": 1,
+    "problem_title": "Two Sum",
+    "problem_description": "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.\nYou can return the answer in any order.\n \nExample 1:\n\nInput: nums = [2,7,11,15], target = 9\nOutput: [0,1]\nExplanation: Because nums[0] + nums[1] == 9, we return [0, 1].\n\nExample 2:\n\nInput: nums = [3,2,4], target = 6\nOutput: [1,2]\n\nExample 3:\n\nInput: nums = [3,3], target = 6\nOutput: [0,1]\n\n \nConstraints:\n\n2 <= nums.length <= 104\n-109 <= nums[i] <= 109\n-109 <= target <= 109\nOnly one valid answer exists.\n\n \nFollow-up: Can you come up with an algorithm that is less than O(n2) time complexity?",
+    "problem_solution": "class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        d = {}\n        for i, x in enumerate(nums):\n            if (y := target - x) in d:\n                return [d[y], i]\n            d[x] = i\n",
+    "difficulty": "Easy",
+    "tags": [
+      "Array",
+      "Hash Table"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "logic_error",
+    "buggy_code": "class Solution:\n    def removeDuplicates(self, nums: List[int]) -> int:\n        k = 0\n        for i in range(len(nums)):\n            if i == 0 or nums[i] != nums[i - 1]:\n                nums[k] = nums[i]\n            k += 1\n        return k",
+    "bug_explanation": "The student increments k unconditionally after every iteration, regardless of whether a unique element was found. This causes k to equal the total length of the array instead of the count of unique elements. For example, with nums = [1,1,2], it returns 3 instead of 2, and the array becomes [1,1,2] instead of [1,2,_].",
+    "socratic_hint": "You're incrementing your counter every time through the loop. Should the counter increase when you encounter a duplicate element, or only when you find a unique element to keep?",
+    "problem_id": 26,
+    "problem_title": "Remove Duplicates From Sorted Array",
+    "problem_description": "Given an integer array nums sorted in non-decreasing order, remove the duplicates in-place such that each unique element appears only once. The relative order of the elements should be kept the same. Then return the number of unique elements in nums.\nConsider the number of unique elements of nums to be k, to get accepted, you need to do the following things:\n\nChange the array nums such that the first k elements of nums contain the unique elements in the order they were present in nums initially. The remaining elements of nums are not important as well as the size of nums.\nReturn k.\n\nCustom Judge:\nThe judge will test your solution with the following code:\n\nint[] nums = [...]; // Input array\nint[] expectedNums = [...]; // The expected answer with correct length\n\nint k = removeDuplicates(nums); // Calls your implementation\n\nassert k == expectedNums.length;\nfor (int i = 0; i < k; i++) {\n    assert nums[i] == expectedNums[i];\n}\n\nIf all assertions pass, then your solution will be accepted.\n \nExample 1:\n\nInput: nums = [1,1,2]\nOutput: 2, nums = [1,2,_]\nExplanation: Your function should return k = 2, with the first two elements of nums being 1 and 2 respectively.\nIt does not matter what you leave beyond the returned k (hence they are underscores).\n\nExample 2:\n\nInput: nums = [0,0,1,1,1,2,2,3,3,4]\nOutput: 5, nums = [0,1,2,3,4,_,_,_,_,_]\nExplanation: Your function should return k = 5, with the first five elements of nums being 0, 1, 2, 3, and 4 respectively.\nIt does not matter what you leave beyond the returned k (hence they are underscores).\n\n \nConstraints:\n\n1 <= nums.length <= 3 * 104\n-100 <= nums[i] <= 100\nnums is sorted in non-decreasing order.\n\n",
+    "problem_solution": "class Solution:\n    def removeDuplicates(self, nums: List[int]) -> int:\n        k = 0\n        for x in nums:\n            if k == 0 or x != nums[k - 1]:\n                nums[k] = x\n                k += 1\n        return k\n",
+    "difficulty": "Easy",
+    "tags": [
+      "Array",
+      "Two Pointers"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "logic_error",
+    "buggy_code": "class Solution:\n    def removeDuplicates(self, nums: List[int]) -> int:\n        k = 0\n        for x in nums:\n            if x != nums[k]:\n                k += 1\n                nums[k] = x\n        return k + 1",
+    "bug_explanation": "The student compares the current element x with nums[k] instead of nums[k-1]. This causes the algorithm to skip elements incorrectly. For example, with nums = [1,1,2], when x=1 (second element), it compares with nums[0]=1, finds them equal, doesn't increment k, so when x=2, it compares with nums[0]=1, increments k to 1, sets nums[1]=2, returning 2. However, with nums = [1,2,2], when x=2 (first 2), it compares with nums[0]=1, increments k to 1, sets nums[1]=2, then x=2 (second 2) compares with nums[1]=2, finds them equal, doesn't increment, so it returns 2 correctly by accident. But with [0,0,1,1,1,2,2,3,3,4], after placing 0 at position 0, when the second 0 comes, it compares with nums[0]=0, skips. When 1 comes, it compares with nums[0]=0, places 1 at nums[1]. When second 1 comes, it compares with nums[1]=1, skips. This actually produces wrong output because the comparison logic is fundamentally flawed - it's comparing with the position being written to rather than the last written value.",
+    "socratic_hint": "When checking if the current element is a duplicate, which previous element should you compare it against? Think about what value is stored at the position you're using for comparison versus what you actually need to check.",
+    "problem_id": 26,
+    "problem_title": "Remove Duplicates From Sorted Array",
+    "problem_description": "Given an integer array nums sorted in non-decreasing order, remove the duplicates in-place such that each unique element appears only once. The relative order of the elements should be kept the same. Then return the number of unique elements in nums.\nConsider the number of unique elements of nums to be k, to get accepted, you need to do the following things:\n\nChange the array nums such that the first k elements of nums contain the unique elements in the order they were present in nums initially. The remaining elements of nums are not important as well as the size of nums.\nReturn k.\n\nCustom Judge:\nThe judge will test your solution with the following code:\n\nint[] nums = [...]; // Input array\nint[] expectedNums = [...]; // The expected answer with correct length\n\nint k = removeDuplicates(nums); // Calls your implementation\n\nassert k == expectedNums.length;\nfor (int i = 0; i < k; i++) {\n    assert nums[i] == expectedNums[i];\n}\n\nIf all assertions pass, then your solution will be accepted.\n \nExample 1:\n\nInput: nums = [1,1,2]\nOutput: 2, nums = [1,2,_]\nExplanation: Your function should return k = 2, with the first two elements of nums being 1 and 2 respectively.\nIt does not matter what you leave beyond the returned k (hence they are underscores).\n\nExample 2:\n\nInput: nums = [0,0,1,1,1,2,2,3,3,4]\nOutput: 5, nums = [0,1,2,3,4,_,_,_,_,_]\nExplanation: Your function should return k = 5, with the first five elements of nums being 0, 1, 2, 3, and 4 respectively.\nIt does not matter what you leave beyond the returned k (hence they are underscores).\n\n \nConstraints:\n\n1 <= nums.length <= 3 * 104\n-100 <= nums[i] <= 100\nnums is sorted in non-decreasing order.\n\n",
+    "problem_solution": "class Solution:\n    def removeDuplicates(self, nums: List[int]) -> int:\n        k = 0\n        for x in nums:\n            if k == 0 or x != nums[k - 1]:\n                nums[k] = x\n                k += 1\n        return k\n",
+    "difficulty": "Easy",
+    "tags": [
+      "Array",
+      "Two Pointers"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "logic_error",
+    "buggy_code": "class Solution:\n    def majorityElement(self, nums: List[int]) -> int:\n        cnt = m = 0\n        for x in nums:\n            if cnt == 0:\n                m, cnt = x, 1\n            elif m == x:\n                cnt += 1\n            else:\n                cnt += 1\n        return m",
+    "bug_explanation": "The student increments the counter when encountering a different element instead of decrementing it. This breaks the Boyer-Moore voting algorithm because it treats both matching and non-matching elements the same way (both increment), so the counter never decreases and the algorithm fails to cancel out non-majority elements.",
+    "socratic_hint": "In the voting algorithm, when you encounter an element that matches your candidate, you increase support for it. But what should happen to the support when you encounter an element that doesn't match? Think about how votes for and against a candidate should affect the count.",
+    "problem_id": 169,
+    "problem_title": "Majority Element",
+    "problem_description": "Given an array nums of size n, return the majority element.\nThe majority element is the element that appears more than ⌊n / 2⌋ times. You may assume that the majority element always exists in the array.\n \nExample 1:\nInput: nums = [3,2,3]\nOutput: 3\nExample 2:\nInput: nums = [2,2,1,1,1,2,2]\nOutput: 2\n\n \nConstraints:\n\nn == nums.length\n1 <= n <= 5 * 104\n-109 <= nums[i] <= 109\n\n \nFollow-up: Could you solve the problem in linear time and in O(1) space?",
+    "problem_solution": "class Solution:\n    def majorityElement(self, nums: List[int]) -> int:\n        cnt = m = 0\n        for x in nums:\n            if cnt == 0:\n                m, cnt = x, 1\n            else:\n                cnt += 1 if m == x else -1\n        return m\n",
+    "difficulty": "Easy",
+    "tags": [
+      "Array",
+      "Hash Table",
+      "Divide and Conquer",
+      "Counting",
+      "Sorting"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "logic_error",
+    "buggy_code": "class Solution:\n    def majorityElement(self, nums: List[int]) -> int:\n        cnt = m = 0\n        for x in nums:\n            if cnt == 0:\n                m, cnt = x, 1\n            else:\n                if m == x:\n                    cnt += 1\n        return m",
+    "bug_explanation": "The student only increments the counter when the element matches but forgets to decrement when it doesn't match. This means once a candidate is chosen and its count goes above 0, the count never decreases, so the first element will often be returned as the answer regardless of whether it's actually the majority element.",
+    "socratic_hint": "Your code handles the case when elements match your candidate by increasing the count. But trace through what happens when you encounter an element that doesn't match your current candidate. Does your code account for this scenario, and if not, how would that affect which element gets returned?",
+    "problem_id": 169,
+    "problem_title": "Majority Element",
+    "problem_description": "Given an array nums of size n, return the majority element.\nThe majority element is the element that appears more than ⌊n / 2⌋ times. You may assume that the majority element always exists in the array.\n \nExample 1:\nInput: nums = [3,2,3]\nOutput: 3\nExample 2:\nInput: nums = [2,2,1,1,1,2,2]\nOutput: 2\n\n \nConstraints:\n\nn == nums.length\n1 <= n <= 5 * 104\n-109 <= nums[i] <= 109\n\n \nFollow-up: Could you solve the problem in linear time and in O(1) space?",
+    "problem_solution": "class Solution:\n    def majorityElement(self, nums: List[int]) -> int:\n        cnt = m = 0\n        for x in nums:\n            if cnt == 0:\n                m, cnt = x, 1\n            else:\n                cnt += 1 if m == x else -1\n        return m\n",
+    "difficulty": "Easy",
+    "tags": [
+      "Array",
+      "Hash Table",
+      "Divide and Conquer",
+      "Counting",
+      "Sorting"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "missing_base_case",
+    "buggy_code": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\nclass Solution:\n    def invertTree(self, root: Optional[TreeNode]) -> Optional[TreeNode]:\n        l, r = self.invertTree(root.left), self.invertTree(root.right)\n        root.left, root.right = r, l\n        return root",
+    "bug_explanation": "The student forgot to check if root is None before accessing root.left and root.right. When the recursion reaches a leaf node's children (which are None), it tries to access None.left and None.right, causing an AttributeError. The missing base case check means the recursion never stops properly at null nodes.",
+    "socratic_hint": "What happens when your recursive function is called on an empty node? Before accessing any properties of the node, what should you check first to prevent errors?",
+    "problem_id": 226,
+    "problem_title": "Invert Binary Tree",
+    "problem_description": "Given the root of a binary tree, invert the tree, and return its root.\n \nExample 1:\n\n\nInput: root = [4,2,7,1,3,6,9]\nOutput: [4,7,2,9,6,3,1]\n\nExample 2:\n\n\nInput: root = [2,1,3]\nOutput: [2,3,1]\n\nExample 3:\n\nInput: root = []\nOutput: []\n\n \nConstraints:\n\nThe number of nodes in the tree is in the range [0, 100].\n-100 <= Node.val <= 100\n\n",
+    "problem_solution": "# Definition for a binary tree node.\n# class TreeNode:\n#     def __init__(self, val=0, left=None, right=None):\n#         self.val = val\n#         self.left = left\n#         self.right = right\nclass Solution:\n    def invertTree(self, root: Optional[TreeNode]) -> Optional[TreeNode]:\n        if root is None:\n            return None\n        l, r = self.invertTree(root.left), self.invertTree(root.right)\n        root.left, root.right = r, l\n        return root\n",
+    "difficulty": "Easy",
+    "tags": [
+      "Tree",
+      "Depth-First Search",
+      "Breadth-First Search",
+      "Binary Tree"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "edge_case",
+    "buggy_code": "class Solution:\n    def isPowerOfTwo(self, n: int) -> bool:\n        return (n & (n - 1)) == 0",
+    "bug_explanation": "The student forgot to check if n is positive. The bitwise operation n & (n - 1) == 0 is true for n=0, but 0 is not a power of 2. This also fails for negative numbers in some cases.",
+    "socratic_hint": "Your bitwise approach is clever! However, trace through what happens when the input is zero. Is zero actually a power of two? What values should be excluded before applying the bitwise check?",
+    "problem_id": 231,
+    "problem_title": "Power Of Two",
+    "problem_description": "Given an integer n, return true if it is a power of two. Otherwise, return false.\nAn integer n is a power of two, if there exists an integer x such that n == 2x.\n \nExample 1:\n\nInput: n = 1\nOutput: true\nExplanation: 20 = 1\n\nExample 2:\n\nInput: n = 16\nOutput: true\nExplanation: 24 = 16\n\nExample 3:\n\nInput: n = 3\nOutput: false\n\n \nConstraints:\n\n-231 <= n <= 231 - 1\n\n \nFollow up: Could you solve it without loops/recursion?",
+    "problem_solution": "class Solution:\n    def isPowerOfTwo(self, n: int) -> bool:\n        return n > 0 and (n & (n - 1)) == 0\n",
+    "difficulty": "Easy",
+    "tags": [
+      "Bit Manipulation",
+      "Recursion",
+      "Math"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "logic_error",
+    "buggy_code": "class Solution:\n    def reverse(self, x: int) -> int:\n        ans = 0\n        mi, mx = -(2**31), 2**31 - 1\n        while x != 0:\n            if ans < mi // 10 + 1 or ans > mx // 10:\n                return 0\n            y = x % 10\n            ans = ans * 10 + y\n            x = x // 10\n        return ans",
+    "bug_explanation": "This code uses Python's default modulo and floor division operations without handling negative numbers correctly. In Python, -123 % 10 gives 7 (not 3), and -123 // 10 gives -13 (not -12), because Python's modulo always returns a non-negative result when the divisor is positive. This causes incorrect digit extraction for negative numbers.",
+    "socratic_hint": "When you extract digits from a negative number using the modulo operator, does Python's modulo behave the same way as it does for positive numbers? Try tracing through your code with a negative input and observe what values you get at each step. How does this differ from what you expect?",
+    "problem_id": 7,
+    "problem_title": "Reverse Integer",
+    "problem_description": "Given a signed 32-bit integer x, return x with its digits reversed. If reversing x causes the value to go outside the signed 32-bit integer range [-231, 231 - 1], then return 0.\nAssume the environment does not allow you to store 64-bit integers (signed or unsigned).\n \nExample 1:\n\nInput: x = 123\nOutput: 321\n\nExample 2:\n\nInput: x = -123\nOutput: -321\n\nExample 3:\n\nInput: x = 120\nOutput: 21\n\n \nConstraints:\n\n-231 <= x <= 231 - 1\n\n",
+    "problem_solution": "class Solution:\n    def reverse(self, x: int) -> int:\n        ans = 0\n        mi, mx = -(2**31), 2**31 - 1\n        while x:\n            if ans < mi // 10 + 1 or ans > mx // 10:\n                return 0\n            y = x % 10\n            if x < 0 and y > 0:\n                y -= 10\n            ans = ans * 10 + y\n            x = (x - y) // 10\n        return ans\n",
+    "difficulty": "Medium",
+    "tags": [
+      "Math"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "edge_case",
+    "buggy_code": "class Solution:\n    def myAtoi(self, s: str) -> int:\n        if not s:\n            return 0\n        n = len(s)\n        if n == 0:\n            return 0\n        i = 0\n        while s[i] == ' ':\n            i += 1\n        sign = -1 if s[i] == '-' else 1\n        if s[i] in ['-', '+']:\n            i += 1\n        res, flag = 0, (2**31 - 1) // 10\n        while i < n:\n            if not s[i].isdigit():\n                break\n            c = int(s[i])\n            if res > flag or (res == flag and c > 7):\n                return 2**31 - 1 if sign > 0 else -(2**31)\n            res = res * 10 + c\n            i += 1\n        return sign * res",
+    "bug_explanation": "The code crashes with an IndexError when the input string contains only whitespace (e.g., '   ') because after the while loop that skips spaces, i equals n, but then the code tries to access s[i] to check for the sign. The correct solution checks if i == n after skipping whitespace.",
+    "socratic_hint": "What happens when the input contains only spaces? After you finish skipping all the whitespace, do you verify that there are still characters left to read before trying to access the next character?",
+    "problem_id": 8,
+    "problem_title": "String To Integer Atoi",
+    "problem_description": "Implement the myAtoi(string s) function, which converts a string to a 32-bit signed integer.\nThe algorithm for myAtoi(string s) is as follows:\n\nWhitespace: Ignore any leading whitespace (\" \").\nSignedness: Determine the sign by checking if the next character is '-' or '+', assuming positivity if neither present.\nConversion: Read the integer by skipping leading zeros until a non-digit character is encountered or the end of the string is reached. If no digits were read, then the result is 0.\nRounding: If the integer is out of the 32-bit signed integer range [-231, 231 - 1], then round the integer to remain in the range. Specifically, integers less than -231 should be rounded to -231, and integers greater than 231 - 1 should be rounded to 231 - 1.\n\nReturn the integer as the final result.\n \nExample 1:\n\nInput: s = \"42\"\nOutput: 42\nExplanation:\n\nThe underlined characters are what is read in and the caret is the current reader position.\nStep 1: \"42\" (no characters read because there is no leading whitespace)\n         ^\nStep 2: \"42\" (no characters read because there is neither a '-' nor '+')\n         ^\nStep 3: \"42\" (\"42\" is read in)\n           ^\n\n\nExample 2:\n\nInput: s = \" -042\"\nOutput: -42\nExplanation:\n\nStep 1: \"   -042\" (leading whitespace is read and ignored)\n            ^\nStep 2: \"   -042\" ('-' is read, so the result should be negative)\n             ^\nStep 3: \"   -042\" (\"042\" is read in, leading zeros ignored in the result)\n               ^\n\n\nExample 3:\n\nInput: s = \"1337c0d3\"\nOutput: 1337\nExplanation:\n\nStep 1: \"1337c0d3\" (no characters read because there is no leading whitespace)\n         ^\nStep 2: \"1337c0d3\" (no characters read because there is neither a '-' nor '+')\n         ^\nStep 3: \"1337c0d3\" (\"1337\" is read in; reading stops because the next character is a non-digit)\n             ^\n\n\nExample 4:\n\nInput: s = \"0-1\"\nOutput: 0\nExplanation:\n\nStep 1: \"0-1\" (no characters read because there is no leading whitespace)\n         ^\nStep 2: \"0-1\" (no characters read because there is neither a '-' nor '+')\n         ^\nStep 3: \"0-1\" (\"0\" is read in; reading stops because the next character is a non-digit)\n          ^\n\n\nExample 5:\n\nInput: s = \"words and 987\"\nOutput: 0\nExplanation:\nReading stops at the first non-digit character 'w'.\n\n \nConstraints:\n\n0 <= s.length <= 200\ns consists of English letters (lower-case and upper-case), digits (0-9), ' ', '+', '-', and '.'.\n\n",
+    "problem_solution": "class Solution:\n    def myAtoi(self, s: str) -> int:\n        if not s:\n            return 0\n        n = len(s)\n        if n == 0:\n            return 0\n        i = 0\n        while s[i] == ' ':\n            i += 1\n            # 仅包含空格\n            if i == n:\n                return 0\n        sign = -1 if s[i] == '-' else 1\n        if s[i] in ['-', '+']:\n            i += 1\n        res, flag = 0, (2**31 - 1) // 10\n        while i < n:\n            # 非数字，跳出循环体\n            if not s[i].isdigit():\n                break\n            c = int(s[i])\n            # 溢出判断\n            if res > flag or (res == flag and c > 7):\n                return 2**31 - 1 if sign > 0 else -(2**31)\n            res = res * 10 + c\n            i += 1\n        return sign * res\n",
+    "difficulty": "Medium",
+    "tags": [
+      "String"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "logic_error",
+    "buggy_code": "class Solution:\n    def myAtoi(self, s: str) -> int:\n        if not s:\n            return 0\n        n = len(s)\n        if n == 0:\n            return 0\n        i = 0\n        while i < n and s[i] == ' ':\n            i += 1\n        if i == n:\n            return 0\n        sign = -1 if s[i] == '-' else 1\n        if s[i] in ['-', '+']:\n            i += 1\n        res, flag = 0, (2**31 - 1) // 10\n        while i < n:\n            if not s[i].isdigit():\n                break\n            c = int(s[i])\n            if res > flag or (res == flag and c > 7):\n                return 2**31 - 1 if sign > 0 else -(2**31)\n            res = res * 10 + c\n            i += 1\n        return res",
+    "bug_explanation": "The code fails to multiply the result by the sign variable before returning. It calculates the absolute value correctly but always returns a positive number, even when the input has a minus sign.",
+    "socratic_hint": "You've correctly identified whether the number should be positive or negative, but trace through your return statement. Are you actually applying that information to the final result you're returning?",
+    "problem_id": 8,
+    "problem_title": "String To Integer Atoi",
+    "problem_description": "Implement the myAtoi(string s) function, which converts a string to a 32-bit signed integer.\nThe algorithm for myAtoi(string s) is as follows:\n\nWhitespace: Ignore any leading whitespace (\" \").\nSignedness: Determine the sign by checking if the next character is '-' or '+', assuming positivity if neither present.\nConversion: Read the integer by skipping leading zeros until a non-digit character is encountered or the end of the string is reached. If no digits were read, then the result is 0.\nRounding: If the integer is out of the 32-bit signed integer range [-231, 231 - 1], then round the integer to remain in the range. Specifically, integers less than -231 should be rounded to -231, and integers greater than 231 - 1 should be rounded to 231 - 1.\n\nReturn the integer as the final result.\n \nExample 1:\n\nInput: s = \"42\"\nOutput: 42\nExplanation:\n\nThe underlined characters are what is read in and the caret is the current reader position.\nStep 1: \"42\" (no characters read because there is no leading whitespace)\n         ^\nStep 2: \"42\" (no characters read because there is neither a '-' nor '+')\n         ^\nStep 3: \"42\" (\"42\" is read in)\n           ^\n\n\nExample 2:\n\nInput: s = \" -042\"\nOutput: -42\nExplanation:\n\nStep 1: \"   -042\" (leading whitespace is read and ignored)\n            ^\nStep 2: \"   -042\" ('-' is read, so the result should be negative)\n             ^\nStep 3: \"   -042\" (\"042\" is read in, leading zeros ignored in the result)\n               ^\n\n\nExample 3:\n\nInput: s = \"1337c0d3\"\nOutput: 1337\nExplanation:\n\nStep 1: \"1337c0d3\" (no characters read because there is no leading whitespace)\n         ^\nStep 2: \"1337c0d3\" (no characters read because there is neither a '-' nor '+')\n         ^\nStep 3: \"1337c0d3\" (\"1337\" is read in; reading stops because the next character is a non-digit)\n             ^\n\n\nExample 4:\n\nInput: s = \"0-1\"\nOutput: 0\nExplanation:\n\nStep 1: \"0-1\" (no characters read because there is no leading whitespace)\n         ^\nStep 2: \"0-1\" (no characters read because there is neither a '-' nor '+')\n         ^\nStep 3: \"0-1\" (\"0\" is read in; reading stops because the next character is a non-digit)\n          ^\n\n\nExample 5:\n\nInput: s = \"words and 987\"\nOutput: 0\nExplanation:\nReading stops at the first non-digit character 'w'.\n\n \nConstraints:\n\n0 <= s.length <= 200\ns consists of English letters (lower-case and upper-case), digits (0-9), ' ', '+', '-', and '.'.\n\n",
+    "problem_solution": "class Solution:\n    def myAtoi(self, s: str) -> int:\n        if not s:\n            return 0\n        n = len(s)\n        if n == 0:\n            return 0\n        i = 0\n        while s[i] == ' ':\n            i += 1\n            # 仅包含空格\n            if i == n:\n                return 0\n        sign = -1 if s[i] == '-' else 1\n        if s[i] in ['-', '+']:\n            i += 1\n        res, flag = 0, (2**31 - 1) // 10\n        while i < n:\n            # 非数字，跳出循环体\n            if not s[i].isdigit():\n                break\n            c = int(s[i])\n            # 溢出判断\n            if res > flag or (res == flag and c > 7):\n                return 2**31 - 1 if sign > 0 else -(2**31)\n            res = res * 10 + c\n            i += 1\n        return sign * res\n",
+    "difficulty": "Medium",
+    "tags": [
+      "String"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "logic_error",
+    "buggy_code": "class Solution:\n    def threeSum(self, nums: List[int]) -> List[List[int]]:\n        nums.sort()\n        n = len(nums)\n        ans = []\n        for i in range(n - 2):\n            if nums[i] > 0:\n                break\n            if i and nums[i] == nums[i - 1]:\n                continue\n            j, k = i + 1, n - 1\n            while j < k:\n                x = nums[i] + nums[j] + nums[k]\n                if x < 0:\n                    j += 1\n                    while j < k and nums[j] == nums[j - 1]:\n                        j += 1\n                elif x > 0:\n                    k -= 1\n                    while j < k and nums[k] == nums[k + 1]:\n                        k -= 1\n                else:\n                    ans.append([nums[i], nums[j], nums[k]])\n                    j, k = j + 1, k - 1\n        return ans",
+    "bug_explanation": "The duplicate-skipping logic is placed inside the x < 0 and x > 0 branches instead of only in the x == 0 branch. This causes the algorithm to skip over valid elements when the sum is not zero, potentially missing valid triplets. Additionally, when a triplet is found, it doesn't skip duplicates afterwards.",
+    "socratic_hint": "When should you skip duplicate values - every time you move a pointer, or only after you've found a valid triplet? Consider what happens if you skip values while still searching for a sum that equals zero.",
+    "problem_id": 15,
+    "problem_title": "3Sum",
+    "problem_description": "Given an integer array nums, return all the triplets [nums[i], nums[j], nums[k]] such that i != j, i != k, and j != k, and nums[i] + nums[j] + nums[k] == 0.\nNotice that the solution set must not contain duplicate triplets.\n \nExample 1:\n\nInput: nums = [-1,0,1,2,-1,-4]\nOutput: [[-1,-1,2],[-1,0,1]]\nExplanation: \nnums[0] + nums[1] + nums[2] = (-1) + 0 + 1 = 0.\nnums[1] + nums[2] + nums[4] = 0 + 1 + (-1) = 0.\nnums[0] + nums[3] + nums[4] = (-1) + 2 + (-1) = 0.\nThe distinct triplets are [-1,0,1] and [-1,-1,2].\nNotice that the order of the output and the order of the triplets does not matter.\n\nExample 2:\n\nInput: nums = [0,1,1]\nOutput: []\nExplanation: The only possible triplet does not sum up to 0.\n\nExample 3:\n\nInput: nums = [0,0,0]\nOutput: [[0,0,0]]\nExplanation: The only possible triplet sums up to 0.\n\n \nConstraints:\n\n3 <= nums.length <= 3000\n-105 <= nums[i] <= 105\n\n",
+    "problem_solution": "class Solution:\n    def threeSum(self, nums: List[int]) -> List[List[int]]:\n        nums.sort()\n        n = len(nums)\n        ans = []\n        for i in range(n - 2):\n            if nums[i] > 0:\n                break\n            if i and nums[i] == nums[i - 1]:\n                continue\n            j, k = i + 1, n - 1\n            while j < k:\n                x = nums[i] + nums[j] + nums[k]\n                if x < 0:\n                    j += 1\n                elif x > 0:\n                    k -= 1\n                else:\n                    ans.append([nums[i], nums[j], nums[k]])\n                    j, k = j + 1, k - 1\n                    while j < k and nums[j] == nums[j - 1]:\n                        j += 1\n                    while j < k and nums[k] == nums[k + 1]:\n                        k -= 1\n        return ans\n",
+    "difficulty": "Medium",
+    "tags": [
+      "Array",
+      "Two Pointers",
+      "Sorting"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "logic_error",
+    "buggy_code": "class Solution:\n    def fourSum(self, nums: List[int], target: int) -> List[List[int]]:\n        n = len(nums)\n        ans = []\n        if n < 4:\n            return ans\n        nums.sort()\n        for i in range(n - 3):\n            if nums[i] == nums[i - 1]:\n                continue\n            for j in range(i + 1, n - 2):\n                if j > i + 1 and nums[j] == nums[j - 1]:\n                    continue\n                k, l = j + 1, n - 1\n                while k < l:\n                    x = nums[i] + nums[j] + nums[k] + nums[l]\n                    if x < target:\n                        k += 1\n                    elif x > target:\n                        l -= 1\n                    else:\n                        ans.append([nums[i], nums[j], nums[k], nums[l]])\n                        k, l = k + 1, l - 1\n                        while k < l and nums[k] == nums[k - 1]:\n                            k += 1\n                        while k < l and nums[l] == nums[l + 1]:\n                            l -= 1\n        return ans",
+    "bug_explanation": "The duplicate check for the first loop is missing the guard condition. It checks nums[i] == nums[i - 1] without first checking if i > 0. When i is 0, nums[i - 1] will access nums[-1], which in Python accesses the last element of the array, causing incorrect behavior. The condition should be 'if i and nums[i] == nums[i - 1]' or 'if i > 0 and nums[i] == nums[i - 1]'.",
+    "socratic_hint": "Look at your duplicate-checking condition in the outermost loop. What happens during the very first iteration when you try to compare with the previous element? Is there always a valid previous element to compare against? Think about what accessing a negative index means in Python.",
+    "problem_id": 18,
+    "problem_title": "4Sum",
+    "problem_description": "Given an array nums of n integers, return an array of all the unique quadruplets [nums[a], nums[b], nums[c], nums[d]] such that:\n\n0 <= a, b, c, d < n\na, b, c, and d are distinct.\nnums[a] + nums[b] + nums[c] + nums[d] == target\n\nYou may return the answer in any order.\n \nExample 1:\n\nInput: nums = [1,0,-1,0,-2,2], target = 0\nOutput: [[-2,-1,1,2],[-2,0,0,2],[-1,0,0,1]]\n\nExample 2:\n\nInput: nums = [2,2,2,2,2], target = 8\nOutput: [[2,2,2,2]]\n\n \nConstraints:\n\n1 <= nums.length <= 200\n-109 <= nums[i] <= 109\n-109 <= target <= 109\n\n",
+    "problem_solution": "class Solution:\n    def fourSum(self, nums: List[int], target: int) -> List[List[int]]:\n        n = len(nums)\n        ans = []\n        if n < 4:\n            return ans\n        nums.sort()\n        for i in range(n - 3):\n            if i and nums[i] == nums[i - 1]:\n                continue\n            for j in range(i + 1, n - 2):\n                if j > i + 1 and nums[j] == nums[j - 1]:\n                    continue\n                k, l = j + 1, n - 1\n                while k < l:\n                    x = nums[i] + nums[j] + nums[k] + nums[l]\n                    if x < target:\n                        k += 1\n                    elif x > target:\n                        l -= 1\n                    else:\n                        ans.append([nums[i], nums[j], nums[k], nums[l]])\n                        k, l = k + 1, l - 1\n                        while k < l and nums[k] == nums[k - 1]:\n                            k += 1\n                        while k < l and nums[l] == nums[l + 1]:\n                            l -= 1\n        return ans\n",
+    "difficulty": "Medium",
+    "tags": [
+      "Array",
+      "Two Pointers",
+      "Sorting"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "off_by_one",
+    "buggy_code": "class Solution:\n    def search(self, nums: List[int], target: int) -> int:\n        n = len(nums)\n        left, right = 0, n - 1\n        while left <= right:\n            mid = (left + right) >> 1\n            if nums[0] <= nums[mid]:\n                if nums[0] <= target <= nums[mid]:\n                    right = mid\n                else:\n                    left = mid + 1\n            else:\n                if nums[mid] < target <= nums[n - 1]:\n                    left = mid + 1\n                else:\n                    right = mid\n        return left if left < n and nums[left] == target else -1",
+    "bug_explanation": "The student uses left <= right as the loop condition (inclusive) but doesn't use right = mid - 1 when narrowing the search space. This causes the loop to run one extra iteration and potentially move left past the target. With nums=[4,5,6,7,0,1,2] and target=0, after finding the correct position at left=4, the loop continues because left<=right (4<=4), calculates mid=4 again, and since nums[0]=4 > nums[4]=0 (second branch) and nums[4]=0 < target=0 is false, it sets right=4. The loop continues infinitely with left=right=4.",
+    "bug_explanation_detail": "Testing with nums=[4,5,6,7,0,1,2], target=0: Eventually narrows down to left=4, right=4. Loop continues since 4<=4. mid=4 (value 0). nums[0]=4 > nums[4]=0, second branch. nums[4]=0 < target=0 is false, so right=4. Loop continues with left=4,right=4 infinitely!",
+    "socratic_hint": "Your loop condition and the way you update your boundaries need to work together consistently. When you use an inclusive comparison in your loop condition, how should you adjust the boundaries to ensure the search space shrinks properly and avoids getting stuck?",
+    "problem_id": 33,
+    "problem_title": "Search In Rotated Sorted Array",
+    "problem_description": "There is an integer array nums sorted in ascending order (with distinct values).\nPrior to being passed to your function, nums is possibly rotated at an unknown pivot index k (1 <= k < nums.length) such that the resulting array is [nums[k], nums[k+1], ..., nums[n-1], nums[0], nums[1], ..., nums[k-1]] (0-indexed). For example, [0,1,2,4,5,6,7] might be rotated at pivot index 3 and become [4,5,6,7,0,1,2].\nGiven the array nums after the possible rotation and an integer target, return the index of target if it is in nums, or -1 if it is not in nums.\nYou must write an algorithm with O(log n) runtime complexity.\n \nExample 1:\nInput: nums = [4,5,6,7,0,1,2], target = 0\nOutput: 4\nExample 2:\nInput: nums = [4,5,6,7,0,1,2], target = 3\nOutput: -1\nExample 3:\nInput: nums = [1], target = 0\nOutput: -1\n\n \nConstraints:\n\n1 <= nums.length <= 5000\n-104 <= nums[i] <= 104\nAll values of nums are unique.\nnums is an ascending array that is possibly rotated.\n-104 <= target <= 104\n\n",
+    "problem_solution": "class Solution:\n    def search(self, nums: List[int], target: int) -> int:\n        n = len(nums)\n        left, right = 0, n - 1\n        while left < right:\n            mid = (left + right) >> 1\n            if nums[0] <= nums[mid]:\n                if nums[0] <= target <= nums[mid]:\n                    right = mid\n                else:\n                    left = mid + 1\n            else:\n                if nums[mid] < target <= nums[n - 1]:\n                    left = mid + 1\n                else:\n                    right = mid\n        return left if nums[left] == target else -1\n",
+    "difficulty": "Medium",
+    "tags": [
+      "Array",
+      "Binary Search"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "off_by_one",
+    "buggy_code": "class Solution:\n    def multiply(self, num1: str, num2: str) -> str:\n        if num1 == \"0\" or num2 == \"0\":\n            return \"0\"\n        m, n = len(num1), len(num2)\n        arr = [0] * (m + n)\n        for i in range(m - 1, -1, -1):\n            a = int(num1[i])\n            for j in range(n - 1, -1, -1):\n                b = int(num2[j])\n                arr[i + j] += a * b\n        for i in range(m + n - 1, 0, -1):\n            arr[i - 1] += arr[i] // 10\n            arr[i] %= 10\n        i = 0 if arr[0] else 1\n        return \"\".join(str(x) for x in arr[i:])",
+    "bug_explanation": "The student is storing the product at index i+j instead of i+j+1. This causes incorrect positioning of digits in the result array. When multiplying digits at positions i and j (from the right), their product should be placed at position i+j+1 to account for proper place value alignment.",
+    "socratic_hint": "When you multiply two digits at specific positions from the right, think about how their product aligns with place values. If you multiply the ones place of one number with the tens place of another, at what position should the result be stored? Try tracing through a simple example like multiplying 12 by 3 to see where each partial product should land.",
+    "problem_id": 43,
+    "problem_title": "Multiply Strings",
+    "problem_description": "Given two non-negative integers num1 and num2 represented as strings, return the product of num1 and num2, also represented as a string.\nNote: You must not use any built-in BigInteger library or convert the inputs to integer directly.\n \nExample 1:\nInput: num1 = \"2\", num2 = \"3\"\nOutput: \"6\"\nExample 2:\nInput: num1 = \"123\", num2 = \"456\"\nOutput: \"56088\"\n\n \nConstraints:\n\n1 <= num1.length, num2.length <= 200\nnum1 and num2 consist of digits only.\nBoth num1 and num2 do not contain any leading zero, except the number 0 itself.\n\n",
+    "problem_solution": "class Solution:\n    def multiply(self, num1: str, num2: str) -> str:\n        if num1 == \"0\" or num2 == \"0\":\n            return \"0\"\n        m, n = len(num1), len(num2)\n        arr = [0] * (m + n)\n        for i in range(m - 1, -1, -1):\n            a = int(num1[i])\n            for j in range(n - 1, -1, -1):\n                b = int(num2[j])\n                arr[i + j + 1] += a * b\n        for i in range(m + n - 1, 0, -1):\n            arr[i - 1] += arr[i] // 10\n            arr[i] %= 10\n        i = 0 if arr[0] else 1\n        return \"\".join(str(x) for x in arr[i:])\n",
+    "difficulty": "Medium",
+    "tags": [
+      "Math",
+      "String",
+      "Simulation"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "edge_case",
+    "buggy_code": "class Solution:\n    def multiply(self, num1: str, num2: str) -> str:\n        m, n = len(num1), len(num2)\n        arr = [0] * (m + n)\n        for i in range(m - 1, -1, -1):\n            a = int(num1[i])\n            for j in range(n - 1, -1, -1):\n                b = int(num2[j])\n                arr[i + j + 1] += a * b\n        for i in range(m + n - 1, 0, -1):\n            arr[i - 1] += arr[i] // 10\n            arr[i] %= 10\n        i = 0 if arr[0] else 1\n        return \"\".join(str(x) for x in arr[i:])",
+    "bug_explanation": "The student forgot to handle the edge case where one or both inputs are \"0\". Without this check, the code will return an empty string when multiplying by zero, because all array elements remain 0 and the skip logic removes all zeros from the output.",
+    "socratic_hint": "What should the result be when you multiply any number by zero? Does your current implementation produce the correct output for this special case? Try mentally tracing what happens to the result array when all products are zero.",
+    "problem_id": 43,
+    "problem_title": "Multiply Strings",
+    "problem_description": "Given two non-negative integers num1 and num2 represented as strings, return the product of num1 and num2, also represented as a string.\nNote: You must not use any built-in BigInteger library or convert the inputs to integer directly.\n \nExample 1:\nInput: num1 = \"2\", num2 = \"3\"\nOutput: \"6\"\nExample 2:\nInput: num1 = \"123\", num2 = \"456\"\nOutput: \"56088\"\n\n \nConstraints:\n\n1 <= num1.length, num2.length <= 200\nnum1 and num2 consist of digits only.\nBoth num1 and num2 do not contain any leading zero, except the number 0 itself.\n\n",
+    "problem_solution": "class Solution:\n    def multiply(self, num1: str, num2: str) -> str:\n        if num1 == \"0\" or num2 == \"0\":\n            return \"0\"\n        m, n = len(num1), len(num2)\n        arr = [0] * (m + n)\n        for i in range(m - 1, -1, -1):\n            a = int(num1[i])\n            for j in range(n - 1, -1, -1):\n                b = int(num2[j])\n                arr[i + j + 1] += a * b\n        for i in range(m + n - 1, 0, -1):\n            arr[i - 1] += arr[i] // 10\n            arr[i] %= 10\n        i = 0 if arr[0] else 1\n        return \"\".join(str(x) for x in arr[i:])\n",
+    "difficulty": "Medium",
+    "tags": [
+      "Math",
+      "String",
+      "Simulation"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "edge_case",
+    "buggy_code": "class Solution:\n    def myPow(self, x: float, n: int) -> float:\n        def qpow(a: float, n: int) -> float:\n            ans = 1\n            while n:\n                if n & 1:\n                    ans *= a\n                a *= a\n                n >>= 1\n            return ans\n\n        return qpow(x, n) if n >= 0 else 1 / qpow(x, n)",
+    "bug_explanation": "When n is negative, the code passes n directly to qpow instead of -n. Since n is negative, the while loop condition 'while n:' will be true, but right-shifting a negative number in Python keeps it negative (arithmetic shift), causing an infinite loop or incorrect behavior. For example, with n=-2, we'd be shifting -2 >> 1 = -1, then -1 >> 1 = -1, creating an infinite loop.",
+    "socratic_hint": "When the exponent is negative, trace through what happens inside the helper function. How does the bitwise right shift operation behave with negative numbers? Does the loop eventually terminate?",
+    "problem_id": 50,
+    "problem_title": "Powx N",
+    "problem_description": "Implement pow(x, n), which calculates x raised to the power n (i.e., xn).\n \nExample 1:\n\nInput: x = 2.00000, n = 10\nOutput: 1024.00000\n\nExample 2:\n\nInput: x = 2.10000, n = 3\nOutput: 9.26100\n\nExample 3:\n\nInput: x = 2.00000, n = -2\nOutput: 0.25000\nExplanation: 2-2 = 1/22 = 1/4 = 0.25\n\n \nConstraints:\n\n-100.0 < x < 100.0\n-231 <= n <= 231-1\nn is an integer.\nEither x is not zero or n > 0.\n-104 <= xn <= 104\n\n",
+    "problem_solution": "class Solution:\n    def myPow(self, x: float, n: int) -> float:\n        def qpow(a: float, n: int) -> float:\n            ans = 1\n            while n:\n                if n & 1:\n                    ans *= a\n                a *= a\n                n >>= 1\n            return ans\n\n        return qpow(x, n) if n >= 0 else 1 / qpow(x, -n)\n",
+    "difficulty": "Medium",
+    "tags": [
+      "Recursion",
+      "Math"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "off_by_one",
+    "buggy_code": "class Solution:\n    def myPow(self, x: float, n: int) -> float:\n        if n == 0:\n            return 1\n        \n        if n < 0:\n            x = 1 / x\n            n = -n\n        \n        def qpow(a: float, n: int) -> float:\n            if n == 1:\n                return a\n            \n            half = qpow(a, n // 2)\n            if n % 2 == 0:\n                return half * half\n            else:\n                return half * half\n        \n        return qpow(x, n)",
+    "bug_explanation": "In the recursive function, both the even and odd cases return the same value (half * half), but the odd case should multiply by the base one more time. For example, with x=2 and n=3, it computes 2^1 in the base case, then returns (2^1)*(2^1) = 4 instead of (2^1)*(2^1)*2 = 8. This causes incorrect results for all odd exponents.",
+    "socratic_hint": "When the exponent is odd, think about the mathematical property of exponentiation. If you break down raising to an odd power using the result of half that power, what's the relationship? For instance, consider how two raised to the power of three relates to two raised to the power of one.",
+    "problem_id": 50,
+    "problem_title": "Powx N",
+    "problem_description": "Implement pow(x, n), which calculates x raised to the power n (i.e., xn).\n \nExample 1:\n\nInput: x = 2.00000, n = 10\nOutput: 1024.00000\n\nExample 2:\n\nInput: x = 2.10000, n = 3\nOutput: 9.26100\n\nExample 3:\n\nInput: x = 2.00000, n = -2\nOutput: 0.25000\nExplanation: 2-2 = 1/22 = 1/4 = 0.25\n\n \nConstraints:\n\n-100.0 < x < 100.0\n-231 <= n <= 231-1\nn is an integer.\nEither x is not zero or n > 0.\n-104 <= xn <= 104\n\n",
+    "problem_solution": "class Solution:\n    def myPow(self, x: float, n: int) -> float:\n        def qpow(a: float, n: int) -> float:\n            ans = 1\n            while n:\n                if n & 1:\n                    ans *= a\n                a *= a\n                n >>= 1\n            return ans\n\n        return qpow(x, n) if n >= 0 else 1 / qpow(x, -n)\n",
+    "difficulty": "Medium",
+    "tags": [
+      "Recursion",
+      "Math"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "edge_case",
+    "buggy_code": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\nclass Solution:\n    def mergeKLists(self, lists: List[Optional[ListNode]]) -> Optional[ListNode]:\n        setattr(ListNode, \"__lt__\", lambda a, b: a.val < b.val)\n        pq = [head for head in lists]\n        heapify(pq)\n        dummy = cur = ListNode()\n        while pq:\n            node = heappop(pq)\n            if node.next:\n                heappush(pq, node.next)\n            cur.next = node\n            cur = cur.next\n        return dummy.next",
+    "bug_explanation": "The code includes None values in the priority queue when initializing from lists. When lists contains empty linked lists (None values), heappop will eventually try to compare None with ListNode objects, which causes a TypeError. The correct solution filters out None values with 'if head' in the list comprehension.",
+    "socratic_hint": "Trace through what happens when the input contains empty linked lists. What types of values get added to your priority queue initially, and what happens when the heap tries to compare these different types?",
+    "problem_id": 23,
+    "problem_title": "Merge K Sorted Lists",
+    "problem_description": "You are given an array of k linked-lists lists, each linked-list is sorted in ascending order.\nMerge all the linked-lists into one sorted linked-list and return it.\n \nExample 1:\n\nInput: lists = [[1,4,5],[1,3,4],[2,6]]\nOutput: [1,1,2,3,4,4,5,6]\nExplanation: The linked-lists are:\n[\n  1->4->5,\n  1->3->4,\n  2->6\n]\nmerging them into one sorted list:\n1->1->2->3->4->4->5->6\n\nExample 2:\n\nInput: lists = []\nOutput: []\n\nExample 3:\n\nInput: lists = [[]]\nOutput: []\n\n \nConstraints:\n\nk == lists.length\n0 <= k <= 104\n0 <= lists[i].length <= 500\n-104 <= lists[i][j] <= 104\nlists[i] is sorted in ascending order.\nThe sum of lists[i].length will not exceed 104.\n\n",
+    "problem_solution": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\nclass Solution:\n    def mergeKLists(self, lists: List[Optional[ListNode]]) -> Optional[ListNode]:\n        setattr(ListNode, \"__lt__\", lambda a, b: a.val < b.val)\n        pq = [head for head in lists if head]\n        heapify(pq)\n        dummy = cur = ListNode()\n        while pq:\n            node = heappop(pq)\n            if node.next:\n                heappush(pq, node.next)\n            cur.next = node\n            cur = cur.next\n        return dummy.next\n",
+    "difficulty": "Hard",
+    "tags": [
+      "Linked List",
+      "Divide and Conquer",
+      "Heap (Priority Queue)",
+      "Merge Sort"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "wrong_algorithm",
+    "buggy_code": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\nclass Solution:\n    def mergeKLists(self, lists: List[Optional[ListNode]]) -> Optional[ListNode]:\n        if not lists:\n            return None\n        \n        while len(lists) > 1:\n            merged = []\n            for i in range(len(lists)):\n                if i + 1 < len(lists):\n                    merged.append(self.mergeTwoLists(lists[i], lists[i+1]))\n            lists = merged\n        \n        return lists[0] if lists else None\n    \n    def mergeTwoLists(self, l1: Optional[ListNode], l2: Optional[ListNode]) -> Optional[ListNode]:\n        dummy = cur = ListNode()\n        while l1 and l2:\n            if l1.val < l2.val:\n                cur.next = l1\n                l1 = l1.next\n            else:\n                cur.next = l2\n                l2 = l2.next\n            cur = cur.next\n        cur.next = l1 or l2\n        return dummy.next",
+    "bug_explanation": "The merge loop skips lists when pairing them. When i=0, it merges lists[0] and lists[1]. Then when i=1, it tries to merge lists[1] and lists[2], but lists[1] was already merged. This causes lists to be lost in the merging process. The correct approach is to step by 2 (i += 2) or pair adjacent lists properly without reusing indices.",
+    "socratic_hint": "Look at how you're iterating through the lists to merge them pairwise. If you merge the first two lists, then consider what happens with the next iteration value—are you accidentally trying to merge a list that was already used in the previous pairing?",
+    "problem_id": 23,
+    "problem_title": "Merge K Sorted Lists",
+    "problem_description": "You are given an array of k linked-lists lists, each linked-list is sorted in ascending order.\nMerge all the linked-lists into one sorted linked-list and return it.\n \nExample 1:\n\nInput: lists = [[1,4,5],[1,3,4],[2,6]]\nOutput: [1,1,2,3,4,4,5,6]\nExplanation: The linked-lists are:\n[\n  1->4->5,\n  1->3->4,\n  2->6\n]\nmerging them into one sorted list:\n1->1->2->3->4->4->5->6\n\nExample 2:\n\nInput: lists = []\nOutput: []\n\nExample 3:\n\nInput: lists = [[]]\nOutput: []\n\n \nConstraints:\n\nk == lists.length\n0 <= k <= 104\n0 <= lists[i].length <= 500\n-104 <= lists[i][j] <= 104\nlists[i] is sorted in ascending order.\nThe sum of lists[i].length will not exceed 104.\n\n",
+    "problem_solution": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\nclass Solution:\n    def mergeKLists(self, lists: List[Optional[ListNode]]) -> Optional[ListNode]:\n        setattr(ListNode, \"__lt__\", lambda a, b: a.val < b.val)\n        pq = [head for head in lists if head]\n        heapify(pq)\n        dummy = cur = ListNode()\n        while pq:\n            node = heappop(pq)\n            if node.next:\n                heappush(pq, node.next)\n            cur.next = node\n            cur = cur.next\n        return dummy.next\n",
+    "difficulty": "Hard",
+    "tags": [
+      "Linked List",
+      "Divide and Conquer",
+      "Heap (Priority Queue)",
+      "Merge Sort"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "logic_error",
+    "buggy_code": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\nclass Solution:\n    def reverseKGroup(self, head: Optional[ListNode], k: int) -> Optional[ListNode]:\n        def reverse(head: Optional[ListNode]) -> Optional[ListNode]:\n            dummy = ListNode()\n            cur = head\n            while cur:\n                nxt = cur.next\n                cur.next = dummy.next\n                dummy.next = cur\n                cur = nxt\n            return dummy.next\n\n        dummy = pre = ListNode(next=head)\n        while pre:\n            cur = pre\n            for _ in range(k):\n                cur = cur.next\n                if cur is None:\n                    return dummy.next\n            node = pre.next\n            nxt = cur.next\n            cur.next = None\n            pre.next = reverse(node)\n            node.next = nxt\n            pre = nxt\n        return dummy.next",
+    "bug_explanation": "After reversing a group and reconnecting the list, the code sets pre = nxt instead of pre = node. Since nxt points to the first node of the next group, this skips setting up the proper connection point, and the code will fail to reverse subsequent groups correctly or may cause an infinite loop.",
+    "socratic_hint": "After you reverse a group and reconnect it to the rest of the list, which node becomes the last node of the reversed section? That node should serve as the connection point for the next group. Trace through what your code uses as the connection point for the second group.",
+    "problem_id": 25,
+    "problem_title": "Reverse Nodes In K Group",
+    "problem_description": "Given the head of a linked list, reverse the nodes of the list k at a time, and return the modified list.\nk is a positive integer and is less than or equal to the length of the linked list. If the number of nodes is not a multiple of k then left-out nodes, in the end, should remain as it is.\nYou may not alter the values in the list's nodes, only nodes themselves may be changed.\n \nExample 1:\n\n\nInput: head = [1,2,3,4,5], k = 2\nOutput: [2,1,4,3,5]\n\nExample 2:\n\n\nInput: head = [1,2,3,4,5], k = 3\nOutput: [3,2,1,4,5]\n\n \nConstraints:\n\nThe number of nodes in the list is n.\n1 <= k <= n <= 5000\n0 <= Node.val <= 1000\n\n \nFollow-up: Can you solve the problem in O(1) extra memory space?\n",
+    "problem_solution": "# Definition for singly-linked list.\n# class ListNode:\n#     def __init__(self, val=0, next=None):\n#         self.val = val\n#         self.next = next\nclass Solution:\n    def reverseKGroup(self, head: Optional[ListNode], k: int) -> Optional[ListNode]:\n        def reverse(head: Optional[ListNode]) -> Optional[ListNode]:\n            dummy = ListNode()\n            cur = head\n            while cur:\n                nxt = cur.next\n                cur.next = dummy.next\n                dummy.next = cur\n                cur = nxt\n            return dummy.next\n\n        dummy = pre = ListNode(next=head)\n        while pre:\n            cur = pre\n            for _ in range(k):\n                cur = cur.next\n                if cur is None:\n                    return dummy.next\n            node = pre.next\n            nxt = cur.next\n            cur.next = None\n            pre.next = reverse(node)\n            node.next = nxt\n            pre = node\n        return dummy.next\n",
+    "difficulty": "Hard",
+    "tags": [
+      "Recursion",
+      "Linked List"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "off_by_one",
+    "buggy_code": "class Solution:\n    def findSubstring(self, s: str, words: List[str]) -> List[int]:\n        from collections import Counter\n        if not s or not words:\n            return []\n        \n        word_len = len(words[0])\n        word_count = len(words)\n        total_len = word_len * word_count\n        word_freq = Counter(words)\n        result = []\n        \n        for i in range(len(s) - total_len):\n            seen = Counter()\n            valid = True\n            for j in range(word_count):\n                start = i + j * word_len\n                word = s[start:start + word_len]\n                if word not in word_freq:\n                    valid = False\n                    break\n                seen[word] += 1\n                if seen[word] > word_freq[word]:\n                    valid = False\n                    break\n            \n            if valid and seen == word_freq:\n                result.append(i)\n        \n        return result",
+    "bug_explanation": "The range should be range(len(s) - total_len + 1) but it's range(len(s) - total_len). This causes the loop to stop one position too early, missing the last valid starting position. For example, with s='barfoo' and words=['foo','bar'], total_len=6, len(s)=6, so range(6-6)=range(0) which produces no iterations, missing the valid answer at index 0.",
+    "socratic_hint": "Think about the boundary condition for your outer loop. If the string has exactly enough characters to fit one concatenation starting at position zero, how many iterations should your loop make? Trace through what happens with a very short example where the entire string is one valid concatenation.",
+    "problem_id": 30,
+    "problem_title": "Substring With Concatenation Of All Words",
+    "problem_description": "You are given a string s and an array of strings words. All the strings of words are of the same length.\nA concatenated string is a string that exactly contains all the strings of any permutation of words concatenated.\n\nFor example, if words = [\"ab\",\"cd\",\"ef\"], then \"abcdef\", \"abefcd\", \"cdabef\", \"cdefab\", \"efabcd\", and \"efcdab\" are all concatenated strings. \"acdbef\" is not a concatenated string because it is not the concatenation of any permutation of words.\n\nReturn an array of the starting indices of all the concatenated substrings in s. You can return the answer in any order.\n \nExample 1:\n\nInput: s = \"barfoothefoobarman\", words = [\"foo\",\"bar\"]\nOutput: [0,9]\nExplanation:\nThe substring starting at 0 is \"barfoo\". It is the concatenation of [\"bar\",\"foo\"] which is a permutation of words.\nThe substring starting at 9 is \"foobar\". It is the concatenation of [\"foo\",\"bar\"] which is a permutation of words.\n\nExample 2:\n\nInput: s = \"wordgoodgoodgoodbestword\", words = [\"word\",\"good\",\"best\",\"word\"]\nOutput: []\nExplanation:\nThere is no concatenated substring.\n\nExample 3:\n\nInput: s = \"barfoofoobarthefoobarman\", words = [\"bar\",\"foo\",\"the\"]\nOutput: [6,9,12]\nExplanation:\nThe substring starting at 6 is \"foobarthe\". It is the concatenation of [\"foo\",\"bar\",\"the\"].\nThe substring starting at 9 is \"barthefoo\". It is the concatenation of [\"bar\",\"the\",\"foo\"].\nThe substring starting at 12 is \"thefoobar\". It is the concatenation of [\"the\",\"foo\",\"bar\"].\n\n \nConstraints:\n\n1 <= s.length <= 104\n1 <= words.length <= 5000\n1 <= words[i].length <= 30\ns and words[i] consist of lowercase English letters.\n\n",
+    "problem_solution": "class Solution:\n    def findSubstring(self, s: str, words: List[str]) -> List[int]:\n        cnt = Counter(words)\n        m, n = len(s), len(words)\n        k = len(words[0])\n        ans = []\n        for i in range(k):\n            l = r = i\n            cnt1 = Counter()\n            while r + k <= m:\n                t = s[r : r + k]\n                r += k\n                if cnt[t] == 0:\n                    l = r\n                    cnt1.clear()\n                    continue\n                cnt1[t] += 1\n                while cnt1[t] > cnt[t]:\n                    rem = s[l : l + k]\n                    l += k\n                    cnt1[rem] -= 1\n                if r - l == n * k:\n                    ans.append(l)\n        return ans\n",
+    "difficulty": "Hard",
+    "tags": [
+      "Hash Table",
+      "String",
+      "Sliding Window"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "wrong_algorithm",
+    "buggy_code": "class Solution:\n    def findSubstring(self, s: str, words: List[str]) -> List[int]:\n        from collections import Counter\n        from itertools import permutations\n        \n        if not s or not words:\n            return []\n        \n        result = []\n        word_len = len(words[0])\n        concat_len = word_len * len(words)\n        \n        # Generate all permutations of words\n        all_perms = set()\n        for perm in permutations(words):\n            all_perms.add(''.join(perm))\n        \n        # Check each position in s\n        for i in range(len(s) - concat_len + 1):\n            substring = s[i:i + concat_len]\n            if substring in all_perms:\n                result.append(i)\n        \n        return result",
+    "bug_explanation": "This solution generates all permutations of the words array and checks if substrings match any permutation. While this approach is conceptually correct, it fails when words contains duplicates because permutations() treats duplicate words as distinct elements, generating permutations that are string-wise identical. For example, with words=['word','good','good','best','word'], it generates many duplicate concatenations, but the set deduplication actually fixes that part. However, the real killer is the time/space complexity - with 5000 words maximum, generating all permutations would take factorial time and cause memory/timeout issues. More critically, for words with duplicates like ['a','a','a'], this creates a massive number of identical strings that even after set deduplication, the permutations generation itself times out or crashes.",
+    "socratic_hint": "Your approach generates all possible orderings of the word list upfront. What happens to the time and space complexity as the number of words grows? Is there a way to check if a substring is valid without pre-generating every possible ordering? Consider how you might validate a substring by examining it piece by piece.",
+    "problem_id": 30,
+    "problem_title": "Substring With Concatenation Of All Words",
+    "problem_description": "You are given a string s and an array of strings words. All the strings of words are of the same length.\nA concatenated string is a string that exactly contains all the strings of any permutation of words concatenated.\n\nFor example, if words = [\"ab\",\"cd\",\"ef\"], then \"abcdef\", \"abefcd\", \"cdabef\", \"cdefab\", \"efabcd\", and \"efcdab\" are all concatenated strings. \"acdbef\" is not a concatenated string because it is not the concatenation of any permutation of words.\n\nReturn an array of the starting indices of all the concatenated substrings in s. You can return the answer in any order.\n \nExample 1:\n\nInput: s = \"barfoothefoobarman\", words = [\"foo\",\"bar\"]\nOutput: [0,9]\nExplanation:\nThe substring starting at 0 is \"barfoo\". It is the concatenation of [\"bar\",\"foo\"] which is a permutation of words.\nThe substring starting at 9 is \"foobar\". It is the concatenation of [\"foo\",\"bar\"] which is a permutation of words.\n\nExample 2:\n\nInput: s = \"wordgoodgoodgoodbestword\", words = [\"word\",\"good\",\"best\",\"word\"]\nOutput: []\nExplanation:\nThere is no concatenated substring.\n\nExample 3:\n\nInput: s = \"barfoofoobarthefoobarman\", words = [\"bar\",\"foo\",\"the\"]\nOutput: [6,9,12]\nExplanation:\nThe substring starting at 6 is \"foobarthe\". It is the concatenation of [\"foo\",\"bar\",\"the\"].\nThe substring starting at 9 is \"barthefoo\". It is the concatenation of [\"bar\",\"the\",\"foo\"].\nThe substring starting at 12 is \"thefoobar\". It is the concatenation of [\"the\",\"foo\",\"bar\"].\n\n \nConstraints:\n\n1 <= s.length <= 104\n1 <= words.length <= 5000\n1 <= words[i].length <= 30\ns and words[i] consist of lowercase English letters.\n\n",
+    "problem_solution": "class Solution:\n    def findSubstring(self, s: str, words: List[str]) -> List[int]:\n        cnt = Counter(words)\n        m, n = len(s), len(words)\n        k = len(words[0])\n        ans = []\n        for i in range(k):\n            l = r = i\n            cnt1 = Counter()\n            while r + k <= m:\n                t = s[r : r + k]\n                r += k\n                if cnt[t] == 0:\n                    l = r\n                    cnt1.clear()\n                    continue\n                cnt1[t] += 1\n                while cnt1[t] > cnt[t]:\n                    rem = s[l : l + k]\n                    l += k\n                    cnt1[rem] -= 1\n                if r - l == n * k:\n                    ans.append(l)\n        return ans\n",
+    "difficulty": "Hard",
+    "tags": [
+      "Hash Table",
+      "String",
+      "Sliding Window"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "logic_error",
+    "buggy_code": "class Solution:\n    def solveSudoku(self, board: List[List[str]]) -> None:\n        def dfs(i, j):\n            if i == 9:\n                return True\n            if j == 9:\n                return dfs(i + 1, 0)\n            if board[i][j] != '.':\n                return dfs(i, j + 1)\n            \n            for v in range(1, 10):\n                if row[i][v] == col[j][v] == block[i // 3][j // 3][v] == False:\n                    row[i][v] = col[j][v] = block[i // 3][j // 3][v] = True\n                    board[i][j] = str(v)\n                    if dfs(i, j + 1):\n                        return True\n                    row[i][v] = col[j][v] = block[i // 3][j // 3][v] = False\n            return False\n\n        row = [[False] * 10 for _ in range(9)]\n        col = [[False] * 10 for _ in range(9)]\n        block = [[[False] * 10 for _ in range(3)] for _ in range(3)]\n        \n        for i in range(9):\n            for j in range(9):\n                if board[i][j] != '.':\n                    v = int(board[i][j])\n                    row[i][v] = col[j][v] = block[i // 3][j // 3][v] = True\n        dfs(0, 0)",
+    "bug_explanation": "The student forgot to reset the board cell back to '.' during backtracking when a value doesn't lead to a solution. While they correctly reset the tracking arrays, the board itself retains the invalid value, causing subsequent attempts to check against an incorrectly filled board.",
+    "socratic_hint": "Your backtracking correctly undoes changes to your tracking structures, but think about all the state that changes when you place a value. Are you undoing every change you made, or is there something else that remains modified after backtracking?",
+    "problem_id": 37,
+    "problem_title": "Sudoku Solver",
+    "problem_description": "Write a program to solve a Sudoku puzzle by filling the empty cells.\nA sudoku solution must satisfy all of the following rules:\n\nEach of the digits 1-9 must occur exactly once in each row.\nEach of the digits 1-9 must occur exactly once in each column.\nEach of the digits 1-9 must occur exactly once in each of the 9 3x3 sub-boxes of the grid.\n\nThe '.' character indicates empty cells.\n \nExample 1:\n\n\nInput: board = [[\"5\",\"3\",\".\",\".\",\"7\",\".\",\".\",\".\",\".\"],[\"6\",\".\",\".\",\"1\",\"9\",\"5\",\".\",\".\",\".\"],[\".\",\"9\",\"8\",\".\",\".\",\".\",\".\",\"6\",\".\"],[\"8\",\".\",\".\",\".\",\"6\",\".\",\".\",\".\",\"3\"],[\"4\",\".\",\".\",\"8\",\".\",\"3\",\".\",\".\",\"1\"],[\"7\",\".\",\".\",\".\",\"2\",\".\",\".\",\".\",\"6\"],[\".\",\"6\",\".\",\".\",\".\",\".\",\"2\",\"8\",\".\"],[\".\",\".\",\".\",\"4\",\"1\",\"9\",\".\",\".\",\"5\"],[\".\",\".\",\".\",\".\",\"8\",\".\",\".\",\"7\",\"9\"]]\nOutput: [[\"5\",\"3\",\"4\",\"6\",\"7\",\"8\",\"9\",\"1\",\"2\"],[\"6\",\"7\",\"2\",\"1\",\"9\",\"5\",\"3\",\"4\",\"8\"],[\"1\",\"9\",\"8\",\"3\",\"4\",\"2\",\"5\",\"6\",\"7\"],[\"8\",\"5\",\"9\",\"7\",\"6\",\"1\",\"4\",\"2\",\"3\"],[\"4\",\"2\",\"6\",\"8\",\"5\",\"3\",\"7\",\"9\",\"1\"],[\"7\",\"1\",\"3\",\"9\",\"2\",\"4\",\"8\",\"5\",\"6\"],[\"9\",\"6\",\"1\",\"5\",\"3\",\"7\",\"2\",\"8\",\"4\"],[\"2\",\"8\",\"7\",\"4\",\"1\",\"9\",\"6\",\"3\",\"5\"],[\"3\",\"4\",\"5\",\"2\",\"8\",\"6\",\"1\",\"7\",\"9\"]]\nExplanation: The input board is shown above and the only valid solution is shown below:\n\n\n\n \nConstraints:\n\nboard.length == 9\nboard[i].length == 9\nboard[i][j] is a digit or '.'.\nIt is guaranteed that the input board has only one solution.\n\n",
+    "problem_solution": "class Solution:\n    def solveSudoku(self, board: List[List[str]]) -> None:\n        def dfs(k):\n            nonlocal ok\n            if k == len(t):\n                ok = True\n                return\n            i, j = t[k]\n            for v in range(9):\n                if row[i][v] == col[j][v] == block[i // 3][j // 3][v] == False:\n                    row[i][v] = col[j][v] = block[i // 3][j // 3][v] = True\n                    board[i][j] = str(v + 1)\n                    dfs(k + 1)\n                    row[i][v] = col[j][v] = block[i // 3][j // 3][v] = False\n                if ok:\n                    return\n\n        row = [[False] * 9 for _ in range(9)]\n        col = [[False] * 9 for _ in range(9)]\n        block = [[[False] * 9 for _ in range(3)] for _ in range(3)]\n        t = []\n        ok = False\n        for i in range(9):\n            for j in range(9):\n                if board[i][j] == '.':\n                    t.append((i, j))\n                else:\n                    v = int(board[i][j]) - 1\n                    row[i][v] = col[j][v] = block[i // 3][j // 3][v] = True\n        dfs(0)\n",
+    "difficulty": "Hard",
+    "tags": [
+      "Array",
+      "Hash Table",
+      "Backtracking",
+      "Matrix"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "edge_case",
+    "buggy_code": "class Solution:\n    def isMatch(self, s: str, p: str) -> bool:\n        from functools import cache\n        \n        @cache\n        def dfs(i: int, j: int) -> bool:\n            if i >= len(s) and j >= len(p):\n                return True\n            if j >= len(p):\n                return False\n            if p[j] == \"*\":\n                return dfs(i + 1, j) or dfs(i + 1, j + 1) or dfs(i, j + 1)\n            return (p[j] == \"?\" or s[i] == p[j]) and dfs(i + 1, j + 1)\n\n        return dfs(0, 0)",
+    "bug_explanation": "The base case only checks if both indices have reached the end to return True. However, when we've consumed all of the input string but the pattern still has remaining asterisks, this should also match. The current code will incorrectly return False for cases like s='' and p='***' or s='abc' and p='abc*'. The code doesn't recursively check if remaining pattern characters are all asterisks.",
+    "socratic_hint": "What happens when you've finished matching all characters in the input string, but there are still characters left in the pattern? Are there any pattern characters that could still produce a valid match in this situation? How should you handle that case?",
+    "problem_id": 44,
+    "problem_title": "Wildcard Matching",
+    "problem_description": "Given an input string (s) and a pattern (p), implement wildcard pattern matching with support for '?' and '*' where:\n\n'?' Matches any single character.\n'*' Matches any sequence of characters (including the empty sequence).\n\nThe matching should cover the entire input string (not partial).\n \nExample 1:\n\nInput: s = \"aa\", p = \"a\"\nOutput: false\nExplanation: \"a\" does not match the entire string \"aa\".\n\nExample 2:\n\nInput: s = \"aa\", p = \"*\"\nOutput: true\nExplanation: '*' matches any sequence.\n\nExample 3:\n\nInput: s = \"cb\", p = \"?a\"\nOutput: false\nExplanation: '?' matches 'c', but the second letter is 'a', which does not match 'b'.\n\n \nConstraints:\n\n0 <= s.length, p.length <= 2000\ns contains only lowercase English letters.\np contains only lowercase English letters, '?' or '*'.\n\n",
+    "problem_solution": "class Solution:\n    def isMatch(self, s: str, p: str) -> bool:\n        @cache\n        def dfs(i: int, j: int) -> bool:\n            if i >= len(s):\n                return j >= len(p) or (p[j] == \"*\" and dfs(i, j + 1))\n            if j >= len(p):\n                return False\n            if p[j] == \"*\":\n                return dfs(i + 1, j) or dfs(i + 1, j + 1) or dfs(i, j + 1)\n            return (p[j] == \"?\" or s[i] == p[j]) and dfs(i + 1, j + 1)\n\n        return dfs(0, 0)\n",
+    "difficulty": "Hard",
+    "tags": [
+      "Greedy",
+      "Recursion",
+      "String",
+      "Dynamic Programming"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "missing_base_case",
+    "buggy_code": "class Solution:\n    def isMatch(self, s: str, p: str) -> bool:\n        from functools import cache\n        \n        @cache\n        def dfs(i: int, j: int) -> bool:\n            if i >= len(s) and j >= len(p):\n                return True\n            if i >= len(s):\n                return j >= len(p) or (p[j] == \"*\" and dfs(i, j + 1))\n            if p[j] == \"*\":\n                return dfs(i + 1, j) or dfs(i + 1, j + 1) or dfs(i, j + 1)\n            return (p[j] == \"?\" or s[i] == p[j]) and dfs(i + 1, j + 1)\n\n        return dfs(0, 0)",
+    "bug_explanation": "The code is missing the base case for when the pattern is exhausted but there are still characters remaining in the input string. When j >= len(p) but i < len(s), we cannot match the remaining characters in s, so we should return False. Without this check, when we try to access p[j] in the last two conditions, we'll get an IndexError. This will crash on inputs like s='a' and p=''.",
+    "socratic_hint": "What should happen when you've used up all the pattern characters but still have input characters left to match? Is there a scenario your current base cases don't handle that could lead to trying to access an index that doesn't exist?",
+    "problem_id": 44,
+    "problem_title": "Wildcard Matching",
+    "problem_description": "Given an input string (s) and a pattern (p), implement wildcard pattern matching with support for '?' and '*' where:\n\n'?' Matches any single character.\n'*' Matches any sequence of characters (including the empty sequence).\n\nThe matching should cover the entire input string (not partial).\n \nExample 1:\n\nInput: s = \"aa\", p = \"a\"\nOutput: false\nExplanation: \"a\" does not match the entire string \"aa\".\n\nExample 2:\n\nInput: s = \"aa\", p = \"*\"\nOutput: true\nExplanation: '*' matches any sequence.\n\nExample 3:\n\nInput: s = \"cb\", p = \"?a\"\nOutput: false\nExplanation: '?' matches 'c', but the second letter is 'a', which does not match 'b'.\n\n \nConstraints:\n\n0 <= s.length, p.length <= 2000\ns contains only lowercase English letters.\np contains only lowercase English letters, '?' or '*'.\n\n",
+    "problem_solution": "class Solution:\n    def isMatch(self, s: str, p: str) -> bool:\n        @cache\n        def dfs(i: int, j: int) -> bool:\n            if i >= len(s):\n                return j >= len(p) or (p[j] == \"*\" and dfs(i, j + 1))\n            if j >= len(p):\n                return False\n            if p[j] == \"*\":\n                return dfs(i + 1, j) or dfs(i + 1, j + 1) or dfs(i, j + 1)\n            return (p[j] == \"?\" or s[i] == p[j]) and dfs(i + 1, j + 1)\n\n        return dfs(0, 0)\n",
+    "difficulty": "Hard",
+    "tags": [
+      "Greedy",
+      "Recursion",
+      "String",
+      "Dynamic Programming"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "logic_error",
+    "buggy_code": "class Solution:\n    def isNumber(self, s: str) -> bool:\n        n = len(s)\n        i = 0\n        if s[i] in '+-':\n            i += 1\n        if i == n:\n            return False\n        if s[i] == '.' and (i + 1 == n or s[i + 1] in 'eE'):\n            return False\n        dot = e = 0\n        j = i\n        while j < n:\n            if s[j] == '.':\n                if e or dot:\n                    return False\n                dot += 1\n            elif s[j] in 'eE':\n                if e or j == n - 1:\n                    return False\n                e += 1\n                if s[j + 1] in '+-':\n                    j += 1\n                    if j == n - 1:\n                        return False\n            elif not s[j].isnumeric():\n                return False\n            j += 1\n        return True",
+    "bug_explanation": "The code removes the check 'j == i' when validating the exponent. This allows invalid cases like 'e5' or '+e10' to be accepted as valid numbers. The exponent must come after at least one digit or valid decimal representation, not right at the start or immediately after a sign.",
+    "socratic_hint": "When you encounter an exponent marker in your loop, you're checking if it's at the end of the string. But is there another position where an exponent marker would be invalid? What should come before the exponent marker to form a valid number?",
+    "problem_id": 65,
+    "problem_title": "Valid Number",
+    "problem_description": "Given a string s, return whether s is a valid number.\n\nFor example, all the following are valid numbers: \"2\", \"0089\", \"-0.1\", \"+3.14\", \"4.\", \"-.9\", \"2e10\", \"-90E3\", \"3e+7\", \"+6e-1\", \"53.5e93\", \"-123.456e789\", while the following are not valid numbers: \"abc\", \"1a\", \"1e\", \"e3\", \"99e2.5\", \"--6\", \"-+3\", \"95a54e53\".\nFormally, a valid number is defined using one of the following definitions:\n\nAn integer number followed by an optional exponent.\nA decimal number followed by an optional exponent.\n\nAn integer number is defined with an optional sign '-' or '+' followed by digits.\nA decimal number is defined with an optional sign '-' or '+' followed by one of the following definitions:\n\nDigits followed by a dot '.'.\nDigits followed by a dot '.' followed by digits.\nA dot '.' followed by digits.\n\nAn exponent is defined with an exponent notation 'e' or 'E' followed by an integer number.\nThe digits are defined as one or more digits.\n \nExample 1:\n\nInput: s = \"0\"\nOutput: true\n\nExample 2:\n\nInput: s = \"e\"\nOutput: false\n\nExample 3:\n\nInput: s = \".\"\nOutput: false\n\n \nConstraints:\n\n1 <= s.length <= 20\ns consists of only English letters (both uppercase and lowercase), digits (0-9), plus '+', minus '-', or dot '.'.\n\n",
+    "problem_solution": "class Solution:\n    def isNumber(self, s: str) -> bool:\n        n = len(s)\n        i = 0\n        if s[i] in '+-':\n            i += 1\n        if i == n:\n            return False\n        if s[i] == '.' and (i + 1 == n or s[i + 1] in 'eE'):\n            return False\n        dot = e = 0\n        j = i\n        while j < n:\n            if s[j] == '.':\n                if e or dot:\n                    return False\n                dot += 1\n            elif s[j] in 'eE':\n                if e or j == i or j == n - 1:\n                    return False\n                e += 1\n                if s[j + 1] in '+-':\n                    j += 1\n                    if j == n - 1:\n                        return False\n            elif not s[j].isnumeric():\n                return False\n            j += 1\n        return True\n",
+    "difficulty": "Hard",
+    "tags": [
+      "String"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "off_by_one",
+    "buggy_code": "class Solution:\n    def fullJustify(self, words: List[str], maxWidth: int) -> List[str]:\n        ans = []\n        i, n = 0, len(words)\n        while i < n:\n            t = []\n            cnt = len(words[i])\n            t.append(words[i])\n            i += 1\n            while i < n and cnt + 1 + len(words[i]) <= maxWidth:\n                cnt += 1 + len(words[i])\n                t.append(words[i])\n                i += 1\n            if i == n or len(t) == 1:\n                left = ' '.join(t)\n                right = ' ' * (maxWidth - len(left))\n                ans.append(left + right)\n                continue\n            space_width = maxWidth - (cnt - len(t) + 1)\n            w, m = divmod(space_width, len(t))\n            row = []\n            for j, s in enumerate(t[:-1]):\n                row.append(s)\n                row.append(' ' * (w + (1 if j < m else 0)))\n            row.append(t[-1])\n            ans.append(''.join(row))\n        return ans",
+    "bug_explanation": "The student uses `divmod(space_width, len(t))` instead of `divmod(space_width, len(t) - 1)`. This divides the space by the number of words instead of the number of gaps between words. When there are 3 words, there are only 2 gaps, but this code divides by 3, causing incorrect space distribution and the final line length to not match maxWidth.",
+    "socratic_hint": "When distributing spaces between words, how many gaps exist between the words? For example, if you have three words in a line, how many spaces are placed between them? Make sure your calculation accounts for the correct number of positions where spaces can go.",
+    "problem_id": 68,
+    "problem_title": "Text Justification",
+    "problem_description": "Given an array of strings words and a width maxWidth, format the text such that each line has exactly maxWidth characters and is fully (left and right) justified.\nYou should pack your words in a greedy approach; that is, pack as many words as you can in each line. Pad extra spaces ' ' when necessary so that each line has exactly maxWidth characters.\nExtra spaces between words should be distributed as evenly as possible. If the number of spaces on a line does not divide evenly between words, the empty slots on the left will be assigned more spaces than the slots on the right.\nFor the last line of text, it should be left-justified, and no extra space is inserted between words.\nNote:\n\nA word is defined as a character sequence consisting of non-space characters only.\nEach word's length is guaranteed to be greater than 0 and not exceed maxWidth.\nThe input array words contains at least one word.\n\n \nExample 1:\n\nInput: words = [\"This\", \"is\", \"an\", \"example\", \"of\", \"text\", \"justification.\"], maxWidth = 16\nOutput:\n[\n   \"This    is    an\",\n   \"example  of text\",\n   \"justification.  \"\n]\nExample 2:\n\nInput: words = [\"What\",\"must\",\"be\",\"acknowledgment\",\"shall\",\"be\"], maxWidth = 16\nOutput:\n[\n  \"What   must   be\",\n  \"acknowledgment  \",\n  \"shall be        \"\n]\nExplanation: Note that the last line is \"shall be    \" instead of \"shall     be\", because the last line must be left-justified instead of fully-justified.\nNote that the second line is also left-justified because it contains only one word.\nExample 3:\n\nInput: words = [\"Science\",\"is\",\"what\",\"we\",\"understand\",\"well\",\"enough\",\"to\",\"explain\",\"to\",\"a\",\"computer.\",\"Art\",\"is\",\"everything\",\"else\",\"we\",\"do\"], maxWidth = 20\nOutput:\n[\n  \"Science  is  what we\",\n  \"understand      well\",\n  \"enough to explain to\",\n  \"a  computer.  Art is\",\n  \"everything  else  we\",\n  \"do                  \"\n]\n \nConstraints:\n\n1 <= words.length <= 300\n1 <= words[i].length <= 20\nwords[i] consists of only English letters and symbols.\n1 <= maxWidth <= 100\nwords[i].length <= maxWidth\n\n",
+    "problem_solution": "class Solution:\n    def fullJustify(self, words: List[str], maxWidth: int) -> List[str]:\n        ans = []\n        i, n = 0, len(words)\n        while i < n:\n            t = []\n            cnt = len(words[i])\n            t.append(words[i])\n            i += 1\n            while i < n and cnt + 1 + len(words[i]) <= maxWidth:\n                cnt += 1 + len(words[i])\n                t.append(words[i])\n                i += 1\n            if i == n or len(t) == 1:\n                left = ' '.join(t)\n                right = ' ' * (maxWidth - len(left))\n                ans.append(left + right)\n                continue\n            space_width = maxWidth - (cnt - len(t) + 1)\n            w, m = divmod(space_width, len(t) - 1)\n            row = []\n            for j, s in enumerate(t[:-1]):\n                row.append(s)\n                row.append(' ' * (w + (1 if j < m else 0)))\n            row.append(t[-1])\n            ans.append(''.join(row))\n        return ans\n",
+    "difficulty": "Hard",
+    "tags": [
+      "Array",
+      "String",
+      "Simulation"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "logic_error",
+    "buggy_code": "class Solution:\n    def fullJustify(self, words: List[str], maxWidth: int) -> List[str]:\n        ans = []\n        i, n = 0, len(words)\n        while i < n:\n            t = []\n            cnt = len(words[i])\n            t.append(words[i])\n            i += 1\n            while i < n and cnt + 1 + len(words[i]) <= maxWidth:\n                cnt += 1 + len(words[i])\n                t.append(words[i])\n                i += 1\n            if i == n:\n                left = ' '.join(t)\n                right = ' ' * (maxWidth - len(left))\n                ans.append(left + right)\n                continue\n            space_width = maxWidth - (cnt - len(t) + 1)\n            w, m = divmod(space_width, len(t) - 1)\n            row = []\n            for j, s in enumerate(t[:-1]):\n                row.append(s)\n                row.append(' ' * (w + (1 if j < m else 0)))\n            row.append(t[-1])\n            ans.append(''.join(row))\n        return ans",
+    "bug_explanation": "The student removed the check for `len(t) == 1` from the last-line condition. When a line has only one word (but is not the last line), it should be left-justified with trailing spaces, not fully justified. This causes lines with a single word to attempt full justification, leading to division by zero when calculating `divmod(space_width, len(t) - 1)` since len(t) - 1 = 0.",
+    "socratic_hint": "What happens when a line contains only a single word that isn't on the last line of output? How should that line be formatted? Think about the number of gaps available for distributing spaces when there's only one word.",
+    "problem_id": 68,
+    "problem_title": "Text Justification",
+    "problem_description": "Given an array of strings words and a width maxWidth, format the text such that each line has exactly maxWidth characters and is fully (left and right) justified.\nYou should pack your words in a greedy approach; that is, pack as many words as you can in each line. Pad extra spaces ' ' when necessary so that each line has exactly maxWidth characters.\nExtra spaces between words should be distributed as evenly as possible. If the number of spaces on a line does not divide evenly between words, the empty slots on the left will be assigned more spaces than the slots on the right.\nFor the last line of text, it should be left-justified, and no extra space is inserted between words.\nNote:\n\nA word is defined as a character sequence consisting of non-space characters only.\nEach word's length is guaranteed to be greater than 0 and not exceed maxWidth.\nThe input array words contains at least one word.\n\n \nExample 1:\n\nInput: words = [\"This\", \"is\", \"an\", \"example\", \"of\", \"text\", \"justification.\"], maxWidth = 16\nOutput:\n[\n   \"This    is    an\",\n   \"example  of text\",\n   \"justification.  \"\n]\nExample 2:\n\nInput: words = [\"What\",\"must\",\"be\",\"acknowledgment\",\"shall\",\"be\"], maxWidth = 16\nOutput:\n[\n  \"What   must   be\",\n  \"acknowledgment  \",\n  \"shall be        \"\n]\nExplanation: Note that the last line is \"shall be    \" instead of \"shall     be\", because the last line must be left-justified instead of fully-justified.\nNote that the second line is also left-justified because it contains only one word.\nExample 3:\n\nInput: words = [\"Science\",\"is\",\"what\",\"we\",\"understand\",\"well\",\"enough\",\"to\",\"explain\",\"to\",\"a\",\"computer.\",\"Art\",\"is\",\"everything\",\"else\",\"we\",\"do\"], maxWidth = 20\nOutput:\n[\n  \"Science  is  what we\",\n  \"understand      well\",\n  \"enough to explain to\",\n  \"a  computer.  Art is\",\n  \"everything  else  we\",\n  \"do                  \"\n]\n \nConstraints:\n\n1 <= words.length <= 300\n1 <= words[i].length <= 20\nwords[i] consists of only English letters and symbols.\n1 <= maxWidth <= 100\nwords[i].length <= maxWidth\n\n",
+    "problem_solution": "class Solution:\n    def fullJustify(self, words: List[str], maxWidth: int) -> List[str]:\n        ans = []\n        i, n = 0, len(words)\n        while i < n:\n            t = []\n            cnt = len(words[i])\n            t.append(words[i])\n            i += 1\n            while i < n and cnt + 1 + len(words[i]) <= maxWidth:\n                cnt += 1 + len(words[i])\n                t.append(words[i])\n                i += 1\n            if i == n or len(t) == 1:\n                left = ' '.join(t)\n                right = ' ' * (maxWidth - len(left))\n                ans.append(left + right)\n                continue\n            space_width = maxWidth - (cnt - len(t) + 1)\n            w, m = divmod(space_width, len(t) - 1)\n            row = []\n            for j, s in enumerate(t[:-1]):\n                row.append(s)\n                row.append(' ' * (w + (1 if j < m else 0)))\n            row.append(t[-1])\n            ans.append(''.join(row))\n        return ans\n",
+    "difficulty": "Hard",
+    "tags": [
+      "Array",
+      "String",
+      "Simulation"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "edge_case",
+    "buggy_code": "class Solution:\n    def fullJustify(self, words: List[str], maxWidth: int) -> List[str]:\n        ans = []\n        i, n = 0, len(words)\n        while i < n:\n            t = []\n            cnt = len(words[i])\n            t.append(words[i])\n            i += 1\n            while i < n and cnt + 1 + len(words[i]) <= maxWidth:\n                cnt += 1 + len(words[i])\n                t.append(words[i])\n                i += 1\n            if i == n or len(t) == 1:\n                left = ' '.join(t)\n                right = ' ' * (maxWidth - len(left))\n                ans.append(left + right)\n                continue\n            space_width = maxWidth - cnt\n            w, m = divmod(space_width, len(t) - 1)\n            row = []\n            for j, s in enumerate(t[:-1]):\n                row.append(s)\n                row.append(' ' * (w + (1 if j < m else 0)))\n            row.append(t[-1])\n            ans.append(''.join(row))\n        return ans",
+    "bug_explanation": "The student calculates `space_width = maxWidth - cnt` instead of `space_width = maxWidth - (cnt - len(t) + 1)`. The variable cnt includes both word lengths and the minimum single spaces between words. To get the total space to distribute, we need to subtract only the word lengths, not the spaces already counted. This results in too few spaces being distributed, causing lines to be shorter than maxWidth.",
+    "socratic_hint": "When you count the total characters needed for words on a line, what does that count include? When calculating how much extra space needs to be distributed, are you accounting for spaces that were already included in your initial count?",
+    "problem_id": 68,
+    "problem_title": "Text Justification",
+    "problem_description": "Given an array of strings words and a width maxWidth, format the text such that each line has exactly maxWidth characters and is fully (left and right) justified.\nYou should pack your words in a greedy approach; that is, pack as many words as you can in each line. Pad extra spaces ' ' when necessary so that each line has exactly maxWidth characters.\nExtra spaces between words should be distributed as evenly as possible. If the number of spaces on a line does not divide evenly between words, the empty slots on the left will be assigned more spaces than the slots on the right.\nFor the last line of text, it should be left-justified, and no extra space is inserted between words.\nNote:\n\nA word is defined as a character sequence consisting of non-space characters only.\nEach word's length is guaranteed to be greater than 0 and not exceed maxWidth.\nThe input array words contains at least one word.\n\n \nExample 1:\n\nInput: words = [\"This\", \"is\", \"an\", \"example\", \"of\", \"text\", \"justification.\"], maxWidth = 16\nOutput:\n[\n   \"This    is    an\",\n   \"example  of text\",\n   \"justification.  \"\n]\nExample 2:\n\nInput: words = [\"What\",\"must\",\"be\",\"acknowledgment\",\"shall\",\"be\"], maxWidth = 16\nOutput:\n[\n  \"What   must   be\",\n  \"acknowledgment  \",\n  \"shall be        \"\n]\nExplanation: Note that the last line is \"shall be    \" instead of \"shall     be\", because the last line must be left-justified instead of fully-justified.\nNote that the second line is also left-justified because it contains only one word.\nExample 3:\n\nInput: words = [\"Science\",\"is\",\"what\",\"we\",\"understand\",\"well\",\"enough\",\"to\",\"explain\",\"to\",\"a\",\"computer.\",\"Art\",\"is\",\"everything\",\"else\",\"we\",\"do\"], maxWidth = 20\nOutput:\n[\n  \"Science  is  what we\",\n  \"understand      well\",\n  \"enough to explain to\",\n  \"a  computer.  Art is\",\n  \"everything  else  we\",\n  \"do                  \"\n]\n \nConstraints:\n\n1 <= words.length <= 300\n1 <= words[i].length <= 20\nwords[i] consists of only English letters and symbols.\n1 <= maxWidth <= 100\nwords[i].length <= maxWidth\n\n",
+    "problem_solution": "class Solution:\n    def fullJustify(self, words: List[str], maxWidth: int) -> List[str]:\n        ans = []\n        i, n = 0, len(words)\n        while i < n:\n            t = []\n            cnt = len(words[i])\n            t.append(words[i])\n            i += 1\n            while i < n and cnt + 1 + len(words[i]) <= maxWidth:\n                cnt += 1 + len(words[i])\n                t.append(words[i])\n                i += 1\n            if i == n or len(t) == 1:\n                left = ' '.join(t)\n                right = ' ' * (maxWidth - len(left))\n                ans.append(left + right)\n                continue\n            space_width = maxWidth - (cnt - len(t) + 1)\n            w, m = divmod(space_width, len(t) - 1)\n            row = []\n            for j, s in enumerate(t[:-1]):\n                row.append(s)\n                row.append(' ' * (w + (1 if j < m else 0)))\n            row.append(t[-1])\n            ans.append(''.join(row))\n        return ans\n",
+    "difficulty": "Hard",
+    "tags": [
+      "Array",
+      "String",
+      "Simulation"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "edge_case",
+    "buggy_code": "class Solution:\n    def maximalRectangle(self, matrix: List[List[str]]) -> int:\n        heights = [0] * len(matrix[0])\n        ans = 0\n        for row in matrix:\n            for j, v in enumerate(row):\n                if v == \"1\":\n                    heights[j] += 1\n                else:\n                    heights[j] = 0\n            ans = max(ans, self.largestRectangleArea(heights))\n        return ans\n\n    def largestRectangleArea(self, heights: List[int]) -> int:\n        n = len(heights)\n        stk = []\n        left = [-1] * n\n        right = [n] * n\n        for i, h in enumerate(heights):\n            while stk and heights[stk[-1]] >= h:\n                stk.pop()\n            if stk:\n                left[i] = stk[-1]\n            stk.append(i)\n        stk = []\n        for i in range(n - 1, -1, -1):\n            h = heights[i]\n            while stk and heights[stk[-1]] >= h:\n                stk.pop()\n            if stk:\n                right[i] = stk[-1]\n            stk.append(i)\n        return max(h * (right[i] - left[i] - 1) for i, h in enumerate(heights))",
+    "bug_explanation": "The code crashes when the matrix is empty or has zero columns. When matrix is empty or matrix[0] is empty, len(matrix[0]) causes an IndexError. The code doesn't handle the edge case where the input matrix might be empty before trying to access its dimensions.",
+    "socratic_hint": "What happens when you try to access the first row of the input to determine its length, but the input itself might be empty? How can you protect your code against this scenario?",
+    "problem_id": 85,
+    "problem_title": "Maximal Rectangle",
+    "problem_description": "Given a rows x cols binary matrix filled with 0's and 1's, find the largest rectangle containing only 1's and return its area.\n \nExample 1:\n\n\nInput: matrix = [[\"1\",\"0\",\"1\",\"0\",\"0\"],[\"1\",\"0\",\"1\",\"1\",\"1\"],[\"1\",\"1\",\"1\",\"1\",\"1\"],[\"1\",\"0\",\"0\",\"1\",\"0\"]]\nOutput: 6\nExplanation: The maximal rectangle is shown in the above picture.\n\nExample 2:\n\nInput: matrix = [[\"0\"]]\nOutput: 0\n\nExample 3:\n\nInput: matrix = [[\"1\"]]\nOutput: 1\n\n \nConstraints:\n\nrows == matrix.length\ncols == matrix[i].length\n1 <= row, cols <= 200\nmatrix[i][j] is '0' or '1'.\n\n",
+    "problem_solution": "class Solution:\n    def maximalRectangle(self, matrix: List[List[str]]) -> int:\n        heights = [0] * len(matrix[0])\n        ans = 0\n        for row in matrix:\n            for j, v in enumerate(row):\n                if v == \"1\":\n                    heights[j] += 1\n                else:\n                    heights[j] = 0\n            ans = max(ans, self.largestRectangleArea(heights))\n        return ans\n\n    def largestRectangleArea(self, heights: List[int]) -> int:\n        n = len(heights)\n        stk = []\n        left = [-1] * n\n        right = [n] * n\n        for i, h in enumerate(heights):\n            while stk and heights[stk[-1]] >= h:\n                stk.pop()\n            if stk:\n                left[i] = stk[-1]\n            stk.append(i)\n        stk = []\n        for i in range(n - 1, -1, -1):\n            h = heights[i]\n            while stk and heights[stk[-1]] >= h:\n                stk.pop()\n            if stk:\n                right[i] = stk[-1]\n            stk.append(i)\n        return max(h * (right[i] - left[i] - 1) for i, h in enumerate(heights))\n",
+    "difficulty": "Hard",
+    "tags": [
+      "Stack",
+      "Array",
+      "Dynamic Programming",
+      "Matrix",
+      "Monotonic Stack"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "logic_error",
+    "buggy_code": "class Solution:\n    def maximalRectangle(self, matrix: List[List[str]]) -> int:\n        if not matrix or not matrix[0]:\n            return 0\n        heights = [0] * len(matrix[0])\n        ans = 0\n        for row in matrix:\n            for j, v in enumerate(row):\n                if v == \"1\":\n                    heights[j] += 1\n                else:\n                    heights[j] = 0\n        ans = max(ans, self.largestRectangleArea(heights))\n        return ans\n\n    def largestRectangleArea(self, heights: List[int]) -> int:\n        n = len(heights)\n        stk = []\n        left = [-1] * n\n        right = [n] * n\n        for i, h in enumerate(heights):\n            while stk and heights[stk[-1]] >= h:\n                stk.pop()\n            if stk:\n                left[i] = stk[-1]\n            stk.append(i)\n        stk = []\n        for i in range(n - 1, -1, -1):\n            h = heights[i]\n            while stk and heights[stk[-1]] >= h:\n                stk.pop()\n            if stk:\n                right[i] = stk[-1]\n            stk.append(i)\n        return max(h * (right[i] - left[i] - 1) for i, h in enumerate(heights))",
+    "bug_explanation": "The largestRectangleArea function is called only once after processing all rows, instead of after each row. This means the algorithm only considers rectangles that extend from the top row to the bottom row, missing all other possible rectangles. For the example input, this would give the wrong answer since it only looks at the final heights array.",
+    "socratic_hint": "You're building up the height information as you process each row. At what point should you be checking for the largest rectangle? Think about whether you need to consider rectangles that don't extend all the way to the bottom of the matrix.",
+    "problem_id": 85,
+    "problem_title": "Maximal Rectangle",
+    "problem_description": "Given a rows x cols binary matrix filled with 0's and 1's, find the largest rectangle containing only 1's and return its area.\n \nExample 1:\n\n\nInput: matrix = [[\"1\",\"0\",\"1\",\"0\",\"0\"],[\"1\",\"0\",\"1\",\"1\",\"1\"],[\"1\",\"1\",\"1\",\"1\",\"1\"],[\"1\",\"0\",\"0\",\"1\",\"0\"]]\nOutput: 6\nExplanation: The maximal rectangle is shown in the above picture.\n\nExample 2:\n\nInput: matrix = [[\"0\"]]\nOutput: 0\n\nExample 3:\n\nInput: matrix = [[\"1\"]]\nOutput: 1\n\n \nConstraints:\n\nrows == matrix.length\ncols == matrix[i].length\n1 <= row, cols <= 200\nmatrix[i][j] is '0' or '1'.\n\n",
+    "problem_solution": "class Solution:\n    def maximalRectangle(self, matrix: List[List[str]]) -> int:\n        heights = [0] * len(matrix[0])\n        ans = 0\n        for row in matrix:\n            for j, v in enumerate(row):\n                if v == \"1\":\n                    heights[j] += 1\n                else:\n                    heights[j] = 0\n            ans = max(ans, self.largestRectangleArea(heights))\n        return ans\n\n    def largestRectangleArea(self, heights: List[int]) -> int:\n        n = len(heights)\n        stk = []\n        left = [-1] * n\n        right = [n] * n\n        for i, h in enumerate(heights):\n            while stk and heights[stk[-1]] >= h:\n                stk.pop()\n            if stk:\n                left[i] = stk[-1]\n            stk.append(i)\n        stk = []\n        for i in range(n - 1, -1, -1):\n            h = heights[i]\n            while stk and heights[stk[-1]] >= h:\n                stk.pop()\n            if stk:\n                right[i] = stk[-1]\n            stk.append(i)\n        return max(h * (right[i] - left[i] - 1) for i, h in enumerate(heights))\n",
+    "difficulty": "Hard",
+    "tags": [
+      "Stack",
+      "Array",
+      "Dynamic Programming",
+      "Matrix",
+      "Monotonic Stack"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "off_by_one",
+    "buggy_code": "class Solution:\n    def maximalRectangle(self, matrix: List[List[str]]) -> int:\n        if not matrix or not matrix[0]:\n            return 0\n        heights = [0] * len(matrix[0])\n        ans = 0\n        for row in matrix:\n            for j, v in enumerate(row):\n                if v == \"1\":\n                    heights[j] += 1\n                else:\n                    heights[j] = 0\n            ans = max(ans, self.largestRectangleArea(heights))\n        return ans\n\n    def largestRectangleArea(self, heights: List[int]) -> int:\n        n = len(heights)\n        stk = []\n        left = [-1] * n\n        right = [n] * n\n        for i, h in enumerate(heights):\n            while stk and heights[stk[-1]] >= h:\n                stk.pop()\n            if stk:\n                left[i] = stk[-1]\n            stk.append(i)\n        stk = []\n        for i in range(n - 1, -1, -1):\n            h = heights[i]\n            while stk and heights[stk[-1]] >= h:\n                stk.pop()\n            if stk:\n                right[i] = stk[-1]\n            stk.append(i)\n        return max(h * (right[i] - left[i]) for i, h in enumerate(heights))",
+    "bug_explanation": "In the final calculation of the rectangle area, the formula uses (right[i] - left[i]) instead of (right[i] - left[i] - 1). This incorrectly calculates the width of the rectangle. Since left[i] and right[i] represent indices of bars that are shorter (boundaries), the width should be the difference minus 1 to account for both boundaries being exclusive.",
+    "socratic_hint": "When calculating the width of a rectangle between two boundary indices, how many positions are actually included? If you have indices marking where the rectangle cannot extend, how do you convert that to the actual count of elements inside those boundaries?",
+    "problem_id": 85,
+    "problem_title": "Maximal Rectangle",
+    "problem_description": "Given a rows x cols binary matrix filled with 0's and 1's, find the largest rectangle containing only 1's and return its area.\n \nExample 1:\n\n\nInput: matrix = [[\"1\",\"0\",\"1\",\"0\",\"0\"],[\"1\",\"0\",\"1\",\"1\",\"1\"],[\"1\",\"1\",\"1\",\"1\",\"1\"],[\"1\",\"0\",\"0\",\"1\",\"0\"]]\nOutput: 6\nExplanation: The maximal rectangle is shown in the above picture.\n\nExample 2:\n\nInput: matrix = [[\"0\"]]\nOutput: 0\n\nExample 3:\n\nInput: matrix = [[\"1\"]]\nOutput: 1\n\n \nConstraints:\n\nrows == matrix.length\ncols == matrix[i].length\n1 <= row, cols <= 200\nmatrix[i][j] is '0' or '1'.\n\n",
+    "problem_solution": "class Solution:\n    def maximalRectangle(self, matrix: List[List[str]]) -> int:\n        heights = [0] * len(matrix[0])\n        ans = 0\n        for row in matrix:\n            for j, v in enumerate(row):\n                if v == \"1\":\n                    heights[j] += 1\n                else:\n                    heights[j] = 0\n            ans = max(ans, self.largestRectangleArea(heights))\n        return ans\n\n    def largestRectangleArea(self, heights: List[int]) -> int:\n        n = len(heights)\n        stk = []\n        left = [-1] * n\n        right = [n] * n\n        for i, h in enumerate(heights):\n            while stk and heights[stk[-1]] >= h:\n                stk.pop()\n            if stk:\n                left[i] = stk[-1]\n            stk.append(i)\n        stk = []\n        for i in range(n - 1, -1, -1):\n            h = heights[i]\n            while stk and heights[stk[-1]] >= h:\n                stk.pop()\n            if stk:\n                right[i] = stk[-1]\n            stk.append(i)\n        return max(h * (right[i] - left[i] - 1) for i, h in enumerate(heights))\n",
+    "difficulty": "Hard",
+    "tags": [
+      "Stack",
+      "Array",
+      "Dynamic Programming",
+      "Matrix",
+      "Monotonic Stack"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "missing_base_case",
+    "buggy_code": "class Solution:\n    def isScramble(self, s1: str, s2: str) -> bool:\n        from functools import cache\n        \n        @cache\n        def dfs(i: int, j: int, k: int) -> bool:\n            for h in range(1, k):\n                if dfs(i, j, h) and dfs(i + h, j + h, k - h):\n                    return True\n                if dfs(i + h, j, k - h) and dfs(i, j + k - h, h):\n                    return True\n            return False\n\n        return dfs(0, 0, len(s1))",
+    "bug_explanation": "The function is missing the base case for when k == 1. Without this base case, the function will recurse infinitely when k reaches 1, since range(1, 1) produces an empty sequence, causing the function to return False without actually comparing the single characters. This leads to incorrect results for all inputs.",
+    "socratic_hint": "In recursive problems, what happens when you reach the smallest possible subproblem? Trace through your recursion: when the substring length becomes one, does your function actually compare the characters, or does it just return a default value?",
+    "problem_id": 87,
+    "problem_title": "Scramble String",
+    "problem_description": "We can scramble a string s to get a string t using the following algorithm:\n\nIf the length of the string is 1, stop.\nIf the length of the string is > 1, do the following:\n\t\nSplit the string into two non-empty substrings at a random index, i.e., if the string is s, divide it to x and y where s = x + y.\nRandomly decide to swap the two substrings or to keep them in the same order. i.e., after this step, s may become s = x + y or s = y + x.\nApply step 1 recursively on each of the two substrings x and y.\n\n\n\nGiven two strings s1 and s2 of the same length, return true if s2 is a scrambled string of s1, otherwise, return false.\n \nExample 1:\n\nInput: s1 = \"great\", s2 = \"rgeat\"\nOutput: true\nExplanation: One possible scenario applied on s1 is:\n\"great\" --> \"gr/eat\" // divide at random index.\n\"gr/eat\" --> \"gr/eat\" // random decision is not to swap the two substrings and keep them in order.\n\"gr/eat\" --> \"g/r / e/at\" // apply the same algorithm recursively on both substrings. divide at random index each of them.\n\"g/r / e/at\" --> \"r/g / e/at\" // random decision was to swap the first substring and to keep the second substring in the same order.\n\"r/g / e/at\" --> \"r/g / e/ a/t\" // again apply the algorithm recursively, divide \"at\" to \"a/t\".\n\"r/g / e/ a/t\" --> \"r/g / e/ a/t\" // random decision is to keep both substrings in the same order.\nThe algorithm stops now, and the result string is \"rgeat\" which is s2.\nAs one possible scenario led s1 to be scrambled to s2, we return true.\n\nExample 2:\n\nInput: s1 = \"abcde\", s2 = \"caebd\"\nOutput: false\n\nExample 3:\n\nInput: s1 = \"a\", s2 = \"a\"\nOutput: true\n\n \nConstraints:\n\ns1.length == s2.length\n1 <= s1.length <= 30\ns1 and s2 consist of lowercase English letters.\n\n",
+    "problem_solution": "class Solution:\n    def isScramble(self, s1: str, s2: str) -> bool:\n        @cache\n        def dfs(i: int, j: int, k: int) -> bool:\n            if k == 1:\n                return s1[i] == s2[j]\n            for h in range(1, k):\n                if dfs(i, j, h) and dfs(i + h, j + h, k - h):\n                    return True\n                if dfs(i + h, j, k - h) and dfs(i, j + k - h, h):\n                    return True\n            return False\n\n        return dfs(0, 0, len(s1))\n",
+    "difficulty": "Hard",
+    "tags": [
+      "String",
+      "Dynamic Programming"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  },
+  {
+    "error_type": "logic_error",
+    "buggy_code": "class Solution:\n    def isScramble(self, s1: str, s2: str) -> bool:\n        from functools import cache\n        \n        @cache\n        def dfs(i: int, j: int, k: int) -> bool:\n            if k == 1:\n                return s1[i] == s2[j]\n            for h in range(1, k):\n                if dfs(i, j, h) or dfs(i + h, j + h, k - h):\n                    return True\n                if dfs(i + h, j, k - h) or dfs(i, j + k - h, h):\n                    return True\n            return False\n\n        return dfs(0, 0, len(s1))",
+    "bug_explanation": "The student used 'or' instead of 'and' when checking if both parts of a split match. For a scramble to be valid, BOTH the left and right parts must match (either in order or swapped). Using 'or' means only one part needs to match, which is incorrect and will return True for strings that aren't actually scrambles of each other.",
+    "socratic_hint": "When you split a string into two parts, what must be true about BOTH parts for the entire string to be a valid scramble? Think about whether only one part matching is sufficient, or if something stronger is required.",
+    "problem_id": 87,
+    "problem_title": "Scramble String",
+    "problem_description": "We can scramble a string s to get a string t using the following algorithm:\n\nIf the length of the string is 1, stop.\nIf the length of the string is > 1, do the following:\n\t\nSplit the string into two non-empty substrings at a random index, i.e., if the string is s, divide it to x and y where s = x + y.\nRandomly decide to swap the two substrings or to keep them in the same order. i.e., after this step, s may become s = x + y or s = y + x.\nApply step 1 recursively on each of the two substrings x and y.\n\n\n\nGiven two strings s1 and s2 of the same length, return true if s2 is a scrambled string of s1, otherwise, return false.\n \nExample 1:\n\nInput: s1 = \"great\", s2 = \"rgeat\"\nOutput: true\nExplanation: One possible scenario applied on s1 is:\n\"great\" --> \"gr/eat\" // divide at random index.\n\"gr/eat\" --> \"gr/eat\" // random decision is not to swap the two substrings and keep them in order.\n\"gr/eat\" --> \"g/r / e/at\" // apply the same algorithm recursively on both substrings. divide at random index each of them.\n\"g/r / e/at\" --> \"r/g / e/at\" // random decision was to swap the first substring and to keep the second substring in the same order.\n\"r/g / e/at\" --> \"r/g / e/ a/t\" // again apply the algorithm recursively, divide \"at\" to \"a/t\".\n\"r/g / e/ a/t\" --> \"r/g / e/ a/t\" // random decision is to keep both substrings in the same order.\nThe algorithm stops now, and the result string is \"rgeat\" which is s2.\nAs one possible scenario led s1 to be scrambled to s2, we return true.\n\nExample 2:\n\nInput: s1 = \"abcde\", s2 = \"caebd\"\nOutput: false\n\nExample 3:\n\nInput: s1 = \"a\", s2 = \"a\"\nOutput: true\n\n \nConstraints:\n\ns1.length == s2.length\n1 <= s1.length <= 30\ns1 and s2 consist of lowercase English letters.\n\n",
+    "problem_solution": "class Solution:\n    def isScramble(self, s1: str, s2: str) -> bool:\n        @cache\n        def dfs(i: int, j: int, k: int) -> bool:\n            if k == 1:\n                return s1[i] == s2[j]\n            for h in range(1, k):\n                if dfs(i, j, h) and dfs(i + h, j + h, k - h):\n                    return True\n                if dfs(i + h, j, k - h) and dfs(i, j + k - h, h):\n                    return True\n            return False\n\n        return dfs(0, 0, len(s1))\n",
+    "difficulty": "Hard",
+    "tags": [
+      "String",
+      "Dynamic Programming"
+    ],
+    "validation": {
+      "buggy_code_is_realistic": true,
+      "buggy_code_is_actually_buggy": true,
+      "hint_is_socratic": true,
+      "hint_avoids_direct_fix": true,
+      "hint_is_helpful": true,
+      "hint_matches_bug": true,
+      "overall_quality": "pass",
+      "issues": [],
+      "suggested_improvement": ""
+    }
+  }
+]

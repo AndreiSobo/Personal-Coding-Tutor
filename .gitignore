@@ -42,5 +42,7 @@ next-env.d.ts
 
 # machine learning
 scripts/venv
-scripts/data/
+
+# added the data to source control for safety
+# scripts/data/
 scripts/.env
