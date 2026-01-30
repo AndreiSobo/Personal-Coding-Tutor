@@ -1,26 +1,14 @@
-# Training Requirements
-# =====================
-# Install with: pip install -r requirements.txt
-# 
-# NOTE: You need a CUDA-capable GPU for training
-
-# Core ML libraries
-torch>=2.1.0
-transformers>=4.36.0
-datasets>=2.16.0
-
-# QLoRA / PEFT
-peft>=0.7.0
-bitsandbytes>=0.41.0
-trl>=0.7.0
-
-# Hugging Face upload
-huggingface_hub>=0.19.0
-
-# Utilities
-accelerate>=0.25.0
-safetensors>=0.4.0
-scipy>=1.11.0
-
-# wandb
-wandb
+torch==2.4.0
+torchvision==0.19.0
+torchaudio==2.4.0
+transformers==4.44.0
+datasets==2.20.0
+accelerate==0.34.0
+bitsandbytes==0.43.3
+peft==0.12.0
+trl==0.10.0
+huggingface_hub==0.24.0
+safetensors==0.4.5
+scipy==1.13.0
+python-dotenv==1.0.1
+wandb==0.18.0
