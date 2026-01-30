@@ -1,28 +1,17 @@
-"""
-Qwen 2.5 7B Fine-Tuning Script using QLoRA
-==========================================
-This script fine-tunes Qwen 2.5 7B Instruct on the Socratic hint dataset
-using QLoRA (Quantized Low-Rank Adaptation) for memory efficiency.
-
-Requirements:
-- GPU with at least 12GB VRAM (RTX 4070 or better)
-- Or run on RunPod/Colab with better GPU
-
-Input: ../data/training_data.jsonl
-Output: ./pact-qwen-tutor (adapter weights)
-"""
-
 import os
+import sys
+import argparse
 import torch
 from datasets import load_dataset
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
     BitsAndBytesConfig,
-    TrainingArguments
+    EarlyStoppingCallback
 )
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from trl import SFTTrainer, SFTConfig
+import wandb
 
 # ========================================
 # CONFIGURATION
@@ -32,16 +21,16 @@ from trl import SFTTrainer, SFTConfig
 MODEL_ID = "Qwen/Qwen2.5-7B-Instruct"
 
 # Training data
-DATA_PATH = "../data/training_data.jsonl"
+DATA_PATH = "../data/qwen_training_data.jsonl"
 
 # Output directory
 OUTPUT_DIR = "./pact-qwen-tutor"
 
-# Training hyperparameters
-EPOCHS = 3
-BATCH_SIZE = 4
-GRADIENT_ACCUMULATION = 4  # Effective batch size = 4 * 4 = 16
-LEARNING_RATE = 2e-4
+# Training hyperparameters (defaults)
+DEFAULT_EPOCHS = 3
+DEFAULT_BATCH_SIZE = 4
+DEFAULT_GRADIENT_ACCUMULATION = 4  # Effective batch size = 4 * 4 = 16
+DEFAULT_LEARNING_RATE = 2e-4
 MAX_SEQ_LENGTH = 2048
 WARMUP_STEPS = 100
 
@@ -49,6 +38,40 @@ WARMUP_STEPS = 100
 LORA_R = 16              # Rank
 LORA_ALPHA = 32          # Scaling factor
 LORA_DROPOUT = 0.05
+
+# WandB configuration
+WANDB_ENTITY = "soboandrei-wandb"
+WANDB_PROJECT = "PACT"
+
+# ========================================
+# ARGUMENT PARSING
+# ========================================
+
+def parse_args():
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(description="Fine-tune Qwen 2.5 7B with QLoRA")
+    
+    # Testing arguments
+    parser.add_argument("--max_steps", type=int, default=None,
+                        help="Maximum training steps (for quick testing)")
+    parser.add_argument("--max_examples", type=int, default=None,
+                        help="Maximum examples to use (for quick testing)")
+    
+    # Training arguments
+    parser.add_argument("--epochs", type=int, default=DEFAULT_EPOCHS,
+                        help=f"Number of training epochs (default: {DEFAULT_EPOCHS})")
+    parser.add_argument("--batch_size", type=int, default=DEFAULT_BATCH_SIZE,
+                        help=f"Per-device batch size (default: {DEFAULT_BATCH_SIZE})")
+    parser.add_argument("--learning_rate", type=float, default=DEFAULT_LEARNING_RATE,
+                        help=f"Learning rate (default: {DEFAULT_LEARNING_RATE})")
+    
+    # WandB arguments
+    parser.add_argument("--run_name", type=str, default=None,
+                        help="WandB run name (default: auto-generated)")
+    parser.add_argument("--no_wandb", action="store_true",
+                        help="Disable WandB logging")
+    
+    return parser.parse_args()
 
 # ========================================
 # SETUP
@@ -121,7 +144,7 @@ def setup_lora(model):
     return model
 
 
-def load_training_data():
+def load_training_data(max_examples=None):
     """Load and prepare the training dataset."""
     
     print(f"Loading training data from {DATA_PATH}...")
@@ -129,17 +152,22 @@ def load_training_data():
     if not os.path.exists(DATA_PATH):
         raise FileNotFoundError(f"Training data not found: {DATA_PATH}")
     
+    # Load full dataset
     dataset = load_dataset("json", data_files=DATA_PATH, split="train")
     
-    print(f"Loaded {len(dataset)} training examples")
+    # Limit examples if testing
+    if max_examples is not None:
+        print(f"Limiting to {max_examples} examples for testing")
+        dataset = dataset.select(range(min(max_examples, len(dataset))))
     
-    return dataset
-
-
-def formatting_func(example):
-    """Format examples for the trainer."""
-    # The SFTTrainer will handle chat template formatting
-    return example
+    # Split into train/validation
+    dataset_split = dataset.train_test_split(test_size=0.1, seed=42)
+    
+    print(f"Dataset split:")
+    print(f"  Training: {len(dataset_split['train'])} examples")
+    print(f"  Validation: {len(dataset_split['test'])} examples")
+    
+    return dataset_split
 
 
 # ========================================
@@ -148,6 +176,9 @@ def formatting_func(example):
 
 def train():
     """Main training function."""
+    
+    # Parse arguments
+    args = parse_args()
     
     print("=" * 60)
     print("PACT - Qwen 2.5 7B Fine-Tuning")
@@ -164,28 +195,82 @@ def train():
     # Load components
     model, tokenizer = setup_model_and_tokenizer()
     model = setup_lora(model)
-    dataset = load_training_data()
+    dataset_split = load_training_data(max_examples=args.max_examples)
+    
+    # Generate run name
+    if args.run_name is None:
+        # Auto-generate based on parameters
+        run_name = f"qwen-2.5-7b-qlora-e{args.epochs}-bs{args.batch_size}-lr{args.learning_rate}"
+    else:
+        run_name = args.run_name
+    
+    # Initialize WandB
+    wandb_run = None
+    if not args.no_wandb:
+        print("\nInitializing Weights & Biases...")
+        wandb_run = wandb.init(
+            entity=WANDB_ENTITY,
+            project=WANDB_PROJECT,
+            name=run_name,
+            config={
+                "model_id": MODEL_ID,
+                "epochs": args.epochs,
+                "batch_size": args.batch_size,
+                "gradient_accumulation": DEFAULT_GRADIENT_ACCUMULATION,
+                "learning_rate": args.learning_rate,
+                "lora_r": LORA_R,
+                "lora_alpha": LORA_ALPHA,
+                "lora_dropout": LORA_DROPOUT,
+                "max_seq_length": MAX_SEQ_LENGTH,
+                "warmup_steps": WARMUP_STEPS,
+                "dataset_size_train": len(dataset_split['train']),
+                "dataset_size_val": len(dataset_split['test']),
+                "optimizer": "paged_adamw_8bit",
+            }
+        )
+        print(f"WandB run: {wandb_run.name}")
+        print(f"Dashboard: {wandb_run.url}")
     
     # Training configuration
     training_args = SFTConfig(
         output_dir=OUTPUT_DIR,
-        num_train_epochs=EPOCHS,
-        per_device_train_batch_size=BATCH_SIZE,
-        gradient_accumulation_steps=GRADIENT_ACCUMULATION,
-        learning_rate=LEARNING_RATE,
+        num_train_epochs=args.epochs,
+        max_steps=args.max_steps if args.max_steps is not None else -1,  # -1 means use epochs
+        per_device_train_batch_size=args.batch_size,
+        gradient_accumulation_steps=DEFAULT_GRADIENT_ACCUMULATION,
+        learning_rate=args.learning_rate,
         warmup_steps=WARMUP_STEPS,
+        
+        # Logging
         logging_steps=10,
+        logging_first_step=True,
+        
+        # Evaluation
+        eval_strategy="steps",
+        eval_steps=50,
+        
+        # Checkpointing
         save_steps=100,
         save_total_limit=3,
+        load_best_model_at_end=True,
+        metric_for_best_model="eval_loss",
+        greater_is_better=False,
+        
+        # Optimization
         fp16=True,
         optim="paged_adamw_8bit",
+        
+        # Model settings
         max_seq_length=MAX_SEQ_LENGTH,
         packing=False,  # Don't pack sequences for chat format
-        report_to="none",  # Disable wandb
         
         # Gradient checkpointing for memory efficiency
         gradient_checkpointing=True,
         gradient_checkpointing_kwargs={"use_reentrant": False},
+        
+        # WandB
+        report_to="wandb" if not args.no_wandb else "none",
+        run_name=run_name,
     )
     
     # Initialize trainer
@@ -194,34 +279,61 @@ def train():
     trainer = SFTTrainer(
         model=model,
         args=training_args,
-        train_dataset=dataset,
+        train_dataset=dataset_split["train"],
+        eval_dataset=dataset_split["test"],  # FIXED: was test_dataset
         tokenizer=tokenizer,
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=3)] if args.max_steps is None else [],
     )
     
     # Train
     print("\n" + "=" * 60)
     print("STARTING TRAINING")
     print("=" * 60)
-    print(f"Epochs: {EPOCHS}")
-    print(f"Batch size: {BATCH_SIZE} x {GRADIENT_ACCUMULATION} = {BATCH_SIZE * GRADIENT_ACCUMULATION}")
-    print(f"Learning rate: {LEARNING_RATE}")
-    print(f"Max sequence length: {MAX_SEQ_LENGTH}")
+    print(f"Configuration:")
+    print(f"  Epochs: {args.epochs}")
+    print(f"  Batch size: {args.batch_size} x {DEFAULT_GRADIENT_ACCUMULATION} = {args.batch_size * DEFAULT_GRADIENT_ACCUMULATION}")
+    print(f"  Learning rate: {args.learning_rate}")
+    print(f"  Max sequence length: {MAX_SEQ_LENGTH}")
+    if args.max_steps:
+        print(f"  Max steps: {args.max_steps} (TESTING MODE)")
     print("-" * 60)
     
-    trainer.train()
-    
-    # Save the final model
-    print("\nSaving model...")
-    trainer.save_model(OUTPUT_DIR)
-    tokenizer.save_pretrained(OUTPUT_DIR)
-    
-    print("\n" + "=" * 60)
-    print("TRAINING COMPLETE")
-    print("=" * 60)
-    print(f"Model saved to: {OUTPUT_DIR}")
-    print("\nNext steps:")
-    print("1. Run merge_weights.py to merge LoRA adapters")
-    print("2. Run upload_to_hf.py to upload to Hugging Face Hub")
+    try:
+        # Run training
+        trainer.train()
+        
+        # Save the final model
+        print("\nSaving model...")
+        trainer.save_model(OUTPUT_DIR)
+        tokenizer.save_pretrained(OUTPUT_DIR)
+        
+        print("\n" + "=" * 60)
+        print("TRAINING COMPLETE")
+        print("=" * 60)
+        print(f"Model saved to: {OUTPUT_DIR}")
+        print("\nNext steps:")
+        print("1. Run merge_weights.py to merge LoRA adapters")
+        print("2. Run upload_to_hf.py to upload to Hugging Face Hub")
+        
+    except KeyboardInterrupt:
+        print("\n" + "=" * 60)
+        print("TRAINING INTERRUPTED")
+        print("=" * 60)
+        print("Saving checkpoint...")
+        trainer.save_model(OUTPUT_DIR + "_interrupted")
+        
+    except Exception as e:
+        print("\n" + "=" * 60)
+        print("TRAINING FAILED")
+        print("=" * 60)
+        print(f"Error: {e}")
+        raise
+        
+    finally:
+        # Always finish WandB run
+        if wandb_run is not None:
+            print("\nFinalizing WandB...")
+            wandb.finish()
 
 
 if __name__ == "__main__":
