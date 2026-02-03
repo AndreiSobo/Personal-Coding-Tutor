@@ -34,7 +34,7 @@ DEFAULT_BATCH_SIZE = 4
 DEFAULT_GRADIENT_ACCUMULATION = 4  # Effective batch size = 4 * 4 = 16
 DEFAULT_LEARNING_RATE = 2e-4
 MAX_SEQ_LENGTH = 2048
-WARMUP_STEPS = 100
+WARMUP_STEPS = 10
 
 # LoRA hyperparameters
 LORA_R = 16              # Rank
@@ -241,18 +241,18 @@ def train():
         per_device_train_batch_size=args.batch_size,
         gradient_accumulation_steps=DEFAULT_GRADIENT_ACCUMULATION,
         learning_rate=args.learning_rate,
+        lr_scheduler_type = "cosine",
         warmup_steps=WARMUP_STEPS,
         
         # Logging
-        logging_steps=10,
+        logging_steps=5,
         logging_first_step=True,
         
         # Evaluation
-        eval_strategy="steps",
-        eval_steps=50,
+        eval_strategy="epoch",
         
         # Checkpointing
-        save_steps=100,
+        save_strategy = "epoch",
         save_total_limit=3,
         load_best_model_at_end=True,
         metric_for_best_model="eval_loss",
@@ -264,7 +264,7 @@ def train():
         
         # Model settings
         max_seq_length=MAX_SEQ_LENGTH,
-        packing=False,  # Don't pack sequences for chat format
+        packing=False,  
         
         # Gradient checkpointing for memory efficiency
         gradient_checkpointing=True,
