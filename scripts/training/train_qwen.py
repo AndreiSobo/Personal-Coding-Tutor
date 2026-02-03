@@ -182,17 +182,13 @@ def train():
     # Parse arguments
     args = parse_args()
     
-    print("=" * 60)
-    print("PACT - Qwen 2.5 7B Fine-Tuning")
-    print("=" * 60)
-    
     # Check GPU
     if torch.cuda.is_available():
         gpu_name = torch.cuda.get_device_name(0)
         gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1e9
         print(f"GPU: {gpu_name} ({gpu_memory:.1f} GB)")
     else:
-        print("WARNING: No GPU detected. Training will be very slow!")
+        print("No GPU detected")
     
     # Load components
     model, tokenizer = setup_model_and_tokenizer()
@@ -201,7 +197,7 @@ def train():
     
     # Generate run name
     if args.run_name is None:
-        # Auto-generate based on parameters
+        # Auto-generate based on current parameters
         run_name = f"qwen-2.5-7b-qlora-e{args.epochs}-bs{args.batch_size}-lr{args.learning_rate}"
     else:
         run_name = args.run_name
@@ -305,17 +301,11 @@ def train():
         trainer.train()
         
         # Save the final model
-        print("\nSaving model...")
+        print("\nTraining complere. Saving model...")
         trainer.save_model(OUTPUT_DIR)
         tokenizer.save_pretrained(OUTPUT_DIR)
-        
-        print("\n" + "=" * 60)
-        print("TRAINING COMPLETE")
-        print("=" * 60)
+
         print(f"Model saved to: {OUTPUT_DIR}")
-        print("\nNext steps:")
-        print("1. Run merge_weights.py to merge LoRA adapters")
-        print("2. Run upload_to_hf.py to upload to Hugging Face Hub")
         
     except KeyboardInterrupt:
         print("\n" + "=" * 60)

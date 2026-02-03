@@ -1,31 +1,8 @@
-"""
-Upload Model to Hugging Face Hub
-=================================
-This script uploads the merged model to Hugging Face Hub
-for use with the Inference API.
-
-Input: ./pact-qwen-merged
-Output: Uploaded to HuggingFace (your-username/pact-qwen-tutor)
-
-Setup:
-1. Create account at huggingface.co
-2. Generate access token at huggingface.co/settings/tokens (with write access)
-3. Add to .env: HF_TOKEN=your_token_here
-   OR run: huggingface-cli login
-"""
-
 import os
 from huggingface_hub import HfApi, create_repo, upload_folder
 from dotenv import load_dotenv
+load_dotenv('../.env') 
 
-# Load environment variables
-load_dotenv('../.env')  # Load from scripts/.env
-
-# ========================================
-# CONFIGURATION
-# ========================================
-
-# Change this to your Hugging Face username
 HF_USERNAME = "AndreiSobo"
 
 # Repository name
@@ -53,7 +30,7 @@ def get_hf_token():
         print("✓ Using HF_TOKEN from environment")
         return token
     
-    # Fall back to CLI login (stored in ~/.huggingface/token)
+    # Fall back to CLI login (stored in ~/.huggingface/token) - currently not working
     try:
         from huggingface_hub import HfFolder
         token = HfFolder.get_token()
@@ -65,13 +42,9 @@ def get_hf_token():
     
     # No token found
     print("\n❌ No HuggingFace token found!")
-    print("\nPlease authenticate using ONE of these methods:")
     print("\n1. Add to your .env file:")
-    print("   HF_TOKEN=hf_your_token_here")
     print("\n2. Or run in terminal:")
-    print("   huggingface-cli login")
-    print("\nGet your token at: https://huggingface.co/settings/tokens")
-    print("(Make sure to select 'Write' access when creating the token)")
+    print("   huggingface-cli login")   # get it at https://huggingface.co/settings/tokens and ensure it has Write permission
     return None
 
 # ========================================
@@ -93,7 +66,7 @@ tags:
 - qwen2.5
 - qlora
 datasets:
-- custom-synthetic-socratic-leetcode
+-synthetic-socratic-coding
 language:
 - en
 pipeline_tag: text-generation
@@ -123,21 +96,18 @@ PACT (Personalised AI Coding Tutor) is trained to:
 ### Dataset Creation Process
 
 The training dataset was generated through:
-1. Sampling 100 LeetCode problems (Easy/Medium/Hard)
+1. Sampling LeetCode problems (Easy/Medium/Hard)
 2. Using Claude Sonnet 4.5 to generate realistic student errors
-3. Validating with GPT-4o to ensure quality (79.1% pass rate)
+3. Validating with GPT-5.2 to ensure quality (79.1% pass rate)
 4. Formatting for Qwen 2.5 Instruct chat template
 
-Error types include:
+Dataset Error types include:
 - Logic errors (48.5%)
 - Edge case failures (19.4%)
 - Off-by-one errors (18.5%)
 - Missing base cases (7.5%)
 - Wrong algorithms (3.5%)
 
-## Evaluation Metrics
-
-*Note: Metrics will be added after post-training evaluation*
 
 The model will be evaluated on:
 - **Code Leakage Rate (CLR):** Percentage of responses containing executable code (target: <5%)
@@ -237,7 +207,6 @@ This model is designed for **educational purposes**, specifically to:
 - Students should be encouraged to attempt problems independently before seeking hints
 - Educators should review model responses for accuracy before sharing with students
 - This tool supplements, not replaces, traditional learning resources
-- Care taken to avoid revealing direct solutions that would enable plagiarism
 
 ## Citation
 
@@ -255,7 +224,7 @@ If you use this model in your research or educational materials, please cite:
 ## Acknowledgements
 
 - **Base Model:** Qwen Team at Alibaba Cloud
-- **Synthetic Data Generation:** Anthropic Claude Sonnet 4.5, OpenAI GPT-4o
+- **Synthetic Data Generation:** Anthropic Claude Sonnet 4.5, OpenAI GPT-5.2
 - **Source Dataset:** LeetCode problems (newfacade/LeetCodeDataset)
 - **Framework:** HuggingFace Transformers, PEFT, TRL, bitsandbytes
 
@@ -266,17 +235,15 @@ This model inherits the Apache 2.0 license from Qwen 2.5 7B Instruct.
 ## Contact
 
 For questions, issues, or feedback:
-- **GitHub:** [Link to your repository]
-- **Email:** [Your email if you want to share]
+- **GitHub:** [https://github.com/AndreiSobo/Personal-Coding-Tutor]
+- **Email:** [soboandrei@gmail.com]
 - **HuggingFace:** [@{HF_USERNAME}](https://huggingface.co/{HF_USERNAME})
 """
     return card
 
 
 def main():
-    print("=" * 60)
     print("Upload to Hugging Face Hub")
-    print("=" * 60)
     
     # Get authentication token
     hf_token = get_hf_token()
@@ -286,7 +253,6 @@ def main():
     # Check model exists
     if not os.path.exists(MODEL_PATH):
         print(f"\n❌ Error: Model not found at {MODEL_PATH}")
-        print("Run merge_weights.py first.")
         return
     
     print(f"\nRepository: {REPO_ID}")
@@ -335,10 +301,8 @@ def main():
     print("✓ Model card generated")
     
     # Upload
-    print("\n" + "=" * 60)
     print("UPLOADING MODEL")
-    print("=" * 60)
-    print("This may take 10-20 minutes depending on your connection...")
+
     print("(Uploading ~14GB of model files)")
     
     try:
@@ -353,16 +317,10 @@ def main():
         print(f"\n❌ Upload failed: {e}")
         return
     
-    print("\n" + "=" * 60)
     print("✓ UPLOAD COMPLETE")
-    print("=" * 60)
+
     print(f"\nModel URL: https://huggingface.co/{REPO_ID}")
     print(f"Inference API: https://api-inference.huggingface.co/models/{REPO_ID}")
-    print("\n🎉 Your model is now publicly available on HuggingFace!")
-    print("\nNext steps:")
-    print("1. Wait 5-10 minutes for model card to render")
-    print("2. Test the Inference API endpoint")
-    print("3. Update your web app to use this model")
 
 
 if __name__ == "__main__":
