@@ -107,7 +107,14 @@ python merge_weights.py
 # Upload to Hugging Face (edit HF_USERNAME first!)
 python upload_to_hf.py
 ```
-
+importantly, since the training was done on RunPod, the following steps were taken:
+1. create a pod - the selected configuration was a 4090 GPU with 24G of vRAM and 100GB of space.
+2. connec tto the pod via terminal on RunPod.io platform
+3. clone the github repo there
+4. use "echo" to write the necessary keys into the .env file. This file must be located in the "scripts" folder
+5. run python scripts for training
+6. test run: python train_qwen.py --max_steps 1 --max_examples 10
+7. actual run: 
 ### 5. Evaluate Model
 
 ```bash
