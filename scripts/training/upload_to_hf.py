@@ -66,9 +66,7 @@ tags:
 - qwen2.5
 - qlora
 datasets:
--synthetic-socratic-coding
-language:
-- en
+- synthetic-socratic-coding
 pipeline_tag: text-generation
 ---
 
