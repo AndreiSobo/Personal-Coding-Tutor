@@ -23,7 +23,7 @@ def main():
     
     print(f"Loaded {len(ds)} total problems")
     
-    # Debug: Print first row to understand structure
+    # Print first row to check column structure
     # for row in ds:
     #     print(f"type: {type(row)},")
     #     print("---")

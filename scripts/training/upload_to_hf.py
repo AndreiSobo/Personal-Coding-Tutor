@@ -14,9 +14,7 @@ REPO_ID = f"{HF_USERNAME}/{REPO_NAME}"
 # Local model path
 MODEL_PATH = "./pact-qwen-merged"
 
-# ========================================
-# AUTHENTICATION
-# ========================================
+# Authentication
 
 def get_hf_token():
     """
@@ -41,10 +39,8 @@ def get_hf_token():
         pass
     
     # No token found
-    print("\n❌ No HuggingFace token found!")
-    print("\n1. Add to your .env file:")
     print("\n2. Or run in terminal:")
-    print("   huggingface-cli login")   # get it at https://huggingface.co/settings/tokens and ensure it has Write permission
+    print("   huggingface-cli login")   # get at https://huggingface.co/settings/tokens and ensure it has Write permission
     return None
 
 # ========================================
@@ -267,12 +263,12 @@ def main():
         
         # Verify username matches
         if user_info['name'] != HF_USERNAME:
-            print(f"\n⚠️  Warning: Token belongs to '{user_info['name']}' but HF_USERNAME is set to '{HF_USERNAME}'")
+            print(f"\nWarning: Token belongs to '{user_info['name']}' but HF_USERNAME is set to '{HF_USERNAME}'")
             response = input("Continue anyway? (y/n): ")
             if response.lower() != 'y':
                 return
     except Exception as e:
-        print(f"❌ Authentication failed: {e}")
+        print(f"Authentication failed: {e}")
         return
     
     # Create repository
@@ -282,7 +278,7 @@ def main():
             repo_id=REPO_ID,
             repo_type="model",
             exist_ok=True,
-            private=False,  # Set to True if you want it private initially
+            private=False,
             token=hf_token
         )
         print("✓ Repository created/verified")
