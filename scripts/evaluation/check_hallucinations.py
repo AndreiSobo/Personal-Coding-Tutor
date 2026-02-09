@@ -144,7 +144,7 @@ Respond with ONLY a JSON object:
     if use_claude:
         import anthropic
         client = anthropic.Anthropic()
-        model = "claude-sonnet-4-20250514"
+        model = "claude-sonnet-4-5"
     else:
         import openai
         client = openai.OpenAI()
@@ -238,7 +238,7 @@ Respond with ONLY a JSON object:
             client = anthropic.Anthropic()
             
             result = client.messages.create(
-                model="claude-sonnet-4-20250514",
+                model="claude-sonnet-4-5",
                 max_tokens=300,
                 messages=[{"role": "user", "content": prompt}]
             )

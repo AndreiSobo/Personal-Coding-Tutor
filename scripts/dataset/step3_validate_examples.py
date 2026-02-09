@@ -4,7 +4,7 @@ Step 3: Validate Examples using GPT-5.2
 This script uses GPT-5.2 to validate the generated training examples.
 Using a different model for validation helps catch systematic errors.
 
-Input: data/generated_examples_raw.json
+Input: data/generated_examples_RETRY.json - initially generated_examples_raw
 Output: data/examples_passed.json, data/examples_needs_revision.json, data/examples_rejected.json
 """
 

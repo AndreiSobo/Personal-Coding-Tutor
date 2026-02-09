@@ -174,11 +174,11 @@ Respond with ONLY a JSON object:
     if use_claude:
         import anthropic
         client = anthropic.Anthropic()
-        model = "claude-sonnet-4-20250514"
+        model = "claude-sonnet-4-5"
     else:
         import openai
         client = openai.OpenAI()
-        model = "gpt-4o"
+        model = "gpt-5.2"
     
     for i, (test_case, response) in enumerate(zip(test_cases, responses)):
         print(f"  Evaluating {i+1}/{len(test_cases)}...")
@@ -250,7 +250,7 @@ def run_evaluation(responses: List[str], test_cases: List[Dict] = None, use_llm_
     if use_llm_judge and test_cases:
         print("\n🤖 LLM-AS-JUDGE EVALUATION")
         print("-" * 40)
-        print("(Using Claude/GPT-4 to evaluate pedagogical quality)")
+        print("(Using Claude sonnet 4.5/GPT-5.2 to evaluate pedagogical quality)")
         
         judge_results = evaluate_with_llm_judge(test_cases, responses)
         

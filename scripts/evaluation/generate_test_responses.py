@@ -5,12 +5,13 @@ import json
 MODEL_PATH = "../training/pact-qwen-merged"
 TEST_DATA_PATH = "../data/test_cases.json"  # You'll create this
 OUTPUT_PATH = "../data/test_responses.json"
+# i'll have do download it from Hugging Face - its not saved locally.
 
 def generate_responses():
     # Load model
     model = AutoModelForCausalLM.from_pretrained(
         MODEL_PATH,
-        torch_dtype=torch.float16,
+        torch_dtype=torch.float16,  # consider implementing quant
         device_map="auto"
     )
     tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
