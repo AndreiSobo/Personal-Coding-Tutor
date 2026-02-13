@@ -5,7 +5,7 @@ This script converts the validated examples into the chat format
 required for fine-tuning Qwen 2.5 Instruct.
 
 Input: data/training_dataset_final.json
-Output: data/training_data.jsonl (JSONL format for training)
+Output: data/qwen_training_data.jsonl (JSONL format for training), qwen_training_samples.json
 """
 
 import json
