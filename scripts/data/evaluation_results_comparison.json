@@ -1,0 +1,348 @@
+{
+  "metrics": {
+    "Original (FP16)": {
+      "CLR": 0.0,
+      "DAR": 0.0,
+      "FCR": 82.6086956521739,
+      "SQ": 4.478260869565218,
+      "Helpfulness": 2.5217391304347827,
+      "n": 23
+    },
+    "Quantized (AWQ)": {
+      "CLR": 0.0,
+      "DAR": 0.0,
+      "FCR": 60.86956521739131,
+      "SQ": 4.3478260869565215,
+      "Helpfulness": 2.739130434782609,
+      "n": 23
+    }
+  },
+  "logs": {
+    "Original (FP16)": [
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 2,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 2,
+        "factual_correctness": "No"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 5,
+        "helpfulness": 2,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 2,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 2,
+        "factual_correctness": "No"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 5,
+        "helpfulness": 2,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 2,
+        "factual_correctness": "No"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 5,
+        "helpfulness": 4,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 5,
+        "helpfulness": 3,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 2,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 5,
+        "helpfulness": 2,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 5,
+        "helpfulness": 4,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 5,
+        "helpfulness": 4,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 2,
+        "factual_correctness": "No"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 3,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 5,
+        "helpfulness": 3,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 5,
+        "helpfulness": 3,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 2,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 5,
+        "helpfulness": 3,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 2,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 5,
+        "helpfulness": 2,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 2,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 3,
+        "factual_correctness": "Yes"
+      }
+    ],
+    "Quantized (AWQ)": [
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 3,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 2,
+        "factual_correctness": "No"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 2,
+        "factual_correctness": "No"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 5,
+        "helpfulness": 4,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 2,
+        "factual_correctness": "No"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 5,
+        "helpfulness": 3,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 5,
+        "helpfulness": 2,
+        "factual_correctness": "No"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 5,
+        "helpfulness": 4,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 4,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 5,
+        "helpfulness": 3,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 2,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 2,
+        "factual_correctness": "No"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 5,
+        "helpfulness": 4,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 2,
+        "factual_correctness": "No"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 2,
+        "factual_correctness": "No"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 4,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 5,
+        "helpfulness": 3,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 2,
+        "factual_correctness": "No"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 3,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 2,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 3,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 5,
+        "helpfulness": 3,
+        "factual_correctness": "Yes"
+      },
+      {
+        "code_leakage": "No",
+        "direct_answer": "No",
+        "socratic_quality": 4,
+        "helpfulness": 2,
+        "factual_correctness": "No"
+      }
+    ]
+  }
+}

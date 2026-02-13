@@ -46,3 +46,4 @@ scripts/venv
 # added the data to source control for safety
 # scripts/data/
 scripts/.env
+*__pycache__

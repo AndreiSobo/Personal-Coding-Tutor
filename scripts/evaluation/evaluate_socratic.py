@@ -1,32 +1,25 @@
-"""
-PACT Model Evaluation - Comprehensive LLM-as-Judge
-===================================================
-Evaluates fine-tuned model on 5 key metrics using Claude Sonnet 4.5
-
-Metrics:
-1. Code Leakage Rate (CLR) - Percentage giving code solutions
-2. Direct Answer Rate (DAR) - Percentage directly revealing fixes
-3. Socratic Quality (SQ) - Quality of guided questioning approach
-4. Helpfulness (H) - Whether guidance actually helps students
-5. Factual Correctness (FC) - Technical accuracy of hints
-
-"""
-
 import json
 import re
 import os
-from typing import List, Dict, Tuple
-from collections import Counter
+from typing import Dict, List
+
 from dotenv import load_dotenv
-import anthropic
+import openai
 
-# Load environment variables
-load_dotenv('../.env')
-
+# Load environment variables (relative to this script)
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 # ========================================
-# EVALUATION PROMPTS
+# CONFIGURATION
 # ========================================
+
+TEST_CASES_PATH = "../data/test_cases.json"
+# Ensure this matches the output file from your generate script
+RESPONSES_PATH = "../data/test_responses_comparison.json"
+RESULTS_PATH = "../data/evaluation_results_comparison.json"
+
+# Model to use for evaluation
+OPENAI_MODEL = "gpt-5.2"
 
 EVALUATION_PROMPT = """You are evaluating an AI coding tutor's response to a student who submitted buggy code.
 
@@ -40,292 +33,197 @@ TUTOR'S RESPONSE:
 
 Evaluate the response on these 5 criteria:
 
-1. CODE_LEAKAGE (Yes/No): Does the response contain executable code that solves the problem?
-   - "Yes" if it includes ```python blocks, function definitions, or multi-line code snippets
-   - "No" if it only mentions concepts or asks questions with brief code references
+CODE_LEAKAGE (Yes/No): Does the response contain executable code that solves the problem?
 
-2. DIRECT_ANSWER (Yes/No): Does it directly tell the student the fix?
-   - "Yes" if it explicitly says "change X to Y", "the bug is Z", "use method W"
-   - "No" if it guides toward discovery through questions or hints
+"Yes" if it includes python blocks, function definitions, or corrected logic.
 
-3. SOCRATIC_QUALITY (1-5): How well does it guide through questions?
-   - 5: Pure Socratic - only guiding questions, no direct answers
-   - 4: Mostly questions with minimal hints
-   - 3: Mix of questions and direct hints
-   - 2: Mostly direct hints with some questions
-   - 1: All direct answers, no questions
+"No" if it only mentions concepts, variable names, or asks questions.
 
-4. HELPFULNESS (1-5): Would this actually help a stuck student make progress?
-   - 5: Clear, actionable guidance that leads to understanding
-   - 4: Helpful but could be clearer
-   - 3: Somewhat helpful but vague
-   - 2: Confusing or misleading
-   - 1: Unhelpful or wrong direction
+DIRECT_ANSWER (Yes/No): Does it directly tell the student the fix?
 
-5. FACTUAL_CORRECTNESS (Yes/No): Is the technical content accurate?
-   - "Yes" if all Python facts, syntax explanations, and debugging advice are correct
-   - "No" if it contains errors about how Python works, wrong terminology, or incorrect claims
+"Yes" if it says "change X to Y" or "the bug is Z".
 
-Respond with ONLY a JSON object (no markdown, no explanation):
+"No" if it guides toward discovery.
+
+SOCRATIC_QUALITY (1-5): How well does it guide through questions?
+
+5: Pure Socratic (questions only)
+
+1: Lecture/Direct Answer
+
+HELPFULNESS (1-5): Would this actually help a stuck student?
+
+5: Clear, actionable guidance
+
+1: Confusing/Wrong
+
+FACTUAL_CORRECTNESS (Yes/No): Is the technical content accurate?
+
+Respond with ONLY a JSON object:
 {{
-    "code_leakage": "Yes" or "No",
-    "direct_answer": "Yes" or "No",
-    "socratic_quality": 1-5,
-    "helpfulness": 1-5,
-    "factual_correctness": "Yes" or "No",
-    "brief_reasoning": "<one sentence explaining key observations>"
+"code_leakage": "Yes" or "No",
+"direct_answer": "Yes" or "No",
+"socratic_quality": 1-5,
+"helpfulness": 1-5,
+"factual_correctness": "Yes" or "No"
 }}"""
 
 
-# ========================================
-# EVALUATION FUNCTION
-# ========================================
+def evaluate_single_response(client, buggy_code: str, response: str) -> Dict:
+    """Send a single request to the OpenAI client and return parsed JSON result.
 
-def evaluate_responses(
-    test_cases: List[Dict],
-    responses: List[str],
-    use_claude: bool = True
-) -> List[Dict]:
+    If parsing fails, returns an object with an "error" key.
     """
-    Evaluate all responses using LLM-as-judge.
-    
-    Args:
-        test_cases: List of test case dicts with 'buggy_code' field
-        responses: List of model responses to evaluate
-        use_claude: If True, use Claude Sonnet 4.5; else GPT-4o
-    
-    Returns:
-        List of evaluation results
-    """
-    
-    if use_claude:
-        client = anthropic.Anthropic()
-        model = "claude-sonnet-4-20250514"
-    else:
-        # implement chatgpt 5.2, as I was happy with its previous findings
-        print("implementing another model")
-        
-    
-    results = []
-    
-    print(f"\n{'='*60}")
-    print(f"EVALUATING {len(responses)} RESPONSES")
-    print(f"{'='*60}")
-    print(f"Using: {model}")
-    print()
-    
-    for i, (test_case, response) in enumerate(zip(test_cases, responses)):
-        print(f"  [{i+1}/{len(responses)}] Evaluating...", end=" ", flush=True)
-        
-        # Extract buggy code
-        buggy_code = test_case.get('buggy_code', '')
-        if not buggy_code:
-            # Try to extract from full_user_message
-            user_msg = test_case.get('full_user_message', '')
-            code_match = re.search(r'```python\s*\n(.*?)\n```', user_msg, re.DOTALL)
-            buggy_code = code_match.group(1) if code_match else 'N/A'
-        
-        prompt = EVALUATION_PROMPT.format(
-            buggy_code=buggy_code,
-            response=response
+    try:
+        completion = client.chat.completions.create(
+            model=OPENAI_MODEL,
+            max_tokens=400,
+            temperature=0,  # deterministic for evaluation
+            messages=[
+                {
+                    "role": "user",
+                    "content": EVALUATION_PROMPT.format(buggy_code=buggy_code, response=response),
+                }
+            ],
         )
-        
-        try:
-            if use_claude:
-                result = client.messages.create(
-                    model=model,
-                    max_tokens=400,
-                    temperature=0,  # Deterministic for evaluation
-                    messages=[{"role": "user", "content": prompt}]
-                )
-                content = result.content[0].text
-            else:
-                result = client.chat.completions.create(
-                    model=model,
-                    max_tokens=400,
-                    temperature=0,
-                    messages=[{"role": "user", "content": prompt}]
-                )
-                content = result.choices[0].message.content
-            
-            # Parse JSON response
-            json_match = re.search(r'\{[\s\S]*\}', content)
-            if json_match:
-                evaluation = json.loads(json_match.group())
-                results.append(evaluation)
-                print("✓")
-            else:
-                results.append({"error": "Could not parse JSON"})
-                print("✗ (parse error)")
-                
-        except Exception as e:
-            results.append({"error": str(e)})
-            print(f"✗ ({type(e).__name__})")
-    
-    return results
+
+        content = completion.choices[0].message.content
+
+        # Robust JSON parsing: extract first {...} block
+        json_match = re.search(r"\{[\s\S]*\}", content)
+        if json_match:
+            return json.loads(json_match.group())
+
+        return {"error": "Parse Error", "raw": content}
+    except Exception as e:
+        return {"error": str(e)}
 
 
-# ========================================
-# METRICS CALCULATION
-# ========================================
-
-def calculate_metrics(eval_results: List[Dict]) -> Dict:
-    """Calculate aggregate metrics from evaluation results."""
-    
-    valid_results = [r for r in eval_results if 'error' not in r]
-    n = len(valid_results)
-    
+def calculate_metrics(results: List[Dict]) -> Dict:
+    """Calculate aggregate metrics from individual evaluation results."""
+    valid = [r for r in results if "error" not in r]
+    n = len(valid)
     if n == 0:
-        return {"error": "No valid evaluation results"}
-    
-    # Binary metrics (percentage)
-    code_leakage_rate = (sum(1 for r in valid_results if r.get('code_leakage') == 'Yes') / n) * 100
-    direct_answer_rate = (sum(1 for r in valid_results if r.get('direct_answer') == 'Yes') / n) * 100
-    factual_correctness_rate = (sum(1 for r in valid_results if r.get('factual_correctness') == 'Yes') / n) * 100
-    
-    # Scaled metrics (average 1-5)
-    socratic_scores = [r.get('socratic_quality', 0) for r in valid_results]
-    helpfulness_scores = [r.get('helpfulness', 0) for r in valid_results]
-    
-    avg_socratic = sum(socratic_scores) / n
-    avg_helpfulness = sum(helpfulness_scores) / n
-    
+        return {}
+
     return {
-        "code_leakage_rate": code_leakage_rate,
-        "direct_answer_rate": direct_answer_rate,
-        "factual_correctness_rate": factual_correctness_rate,
-        "socratic_quality_avg": avg_socratic,
-        "helpfulness_avg": avg_helpfulness,
-        "total_evaluated": n,
-        "errors": len(eval_results) - n
+        "CLR": (sum(1 for r in valid if r.get("code_leakage") == "Yes") / n) * 100,
+        "DAR": (sum(1 for r in valid if r.get("direct_answer") == "Yes") / n) * 100,
+        "FCR": (sum(1 for r in valid if r.get("factual_correctness") == "Yes") / n) * 100,
+        "SQ": sum(int(r.get("socratic_quality", 0)) for r in valid) / n,
+        "Helpfulness": sum(int(r.get("helpfulness", 0)) for r in valid) / n,
+        "n": n,
     }
 
 
-# ========================================
-# RESULTS DISPLAY
-# ========================================
+def print_comparison_table(metrics_map: Dict[str, Dict]) -> None:
+    """Print a simple ASCII comparison table for models."""
+    models = list(metrics_map.keys())
+    if not models:
+        print("No metrics to display.")
+        return
 
-def display_results(metrics: Dict, eval_results: List[Dict]):
-    """Display evaluation results in a clear format."""
-    
-    print(f"\n{'='*60}")
-    print("EVALUATION RESULTS")
-    print(f"{'='*60}\n")
-    
-    # Binary metrics
-    print("📊 BINARY METRICS (Lower is Better)")
-    print("-" * 60)
-    
-    clr = metrics['code_leakage_rate']
-    print(f"Code Leakage Rate (CLR):     {clr:5.1f}%  {'✅' if clr < 5 else '❌ FAIL'} (target: <5%)")
-    
-    dar = metrics['direct_answer_rate']
-    print(f"Direct Answer Rate (DAR):    {dar:5.1f}%  {'✅' if dar < 10 else '❌ FAIL'} (target: <10%)")
-    
-    fcr = metrics['factual_correctness_rate']
-    print(f"Factual Correctness Rate:    {fcr:5.1f}%  {'✅' if fcr > 95 else '❌ FAIL'} (target: >95%)")
-    
-    # Scaled metrics
-    print(f"\n⭐ QUALITY METRICS (Higher is Better)")
-    print("-" * 60)
-    
-    sq = metrics['socratic_quality_avg']
-    print(f"Socratic Quality (1-5):      {sq:5.2f}  {'✅' if sq >= 4.0 else '❌ FAIL'} (target: ≥4.0)")
-    
-    h = metrics['helpfulness_avg']
-    print(f"Helpfulness (1-5):           {h:5.2f}  {'✅' if h >= 4.0 else '❌ FAIL'} (target: ≥4.0)")
-    
-    # Overall assessment
-    print(f"\n{'='*60}")
-    print("OVERALL ASSESSMENT")
-    print(f"{'='*60}")
-    
-    passed = (
-        clr < 5 and 
-        dar < 10 and 
-        fcr > 95 and 
-        sq >= 4.0 and 
-        h >= 4.0
-    )
-    
-    if passed:
-        print("✅ MODEL PASSES ALL EVALUATION CRITERIA!")
-        print("   Ready for deployment and report writeup.")
-    else:
-        print("⚠️  MODEL NEEDS IMPROVEMENT:")
-        if clr >= 5:
-            print(f"   • Reduce code leakage (currently {clr:.1f}%)")
-        if dar >= 10:
-            print(f"   • Reduce direct answers (currently {dar:.1f}%)")
-        if fcr <= 95:
-            print(f"   • Improve factual accuracy (currently {fcr:.1f}%)")
-        if sq < 4.0:
-            print(f"   • Improve Socratic questioning (currently {sq:.2f}/5)")
-        if h < 4.0:
-            print(f"   • Improve helpfulness (currently {h:.2f}/5)")
-    
-    # Show error count
-    if metrics.get('errors', 0) > 0:
-        print(f"\n⚠️  {metrics['errors']} evaluation(s) failed due to errors")
-    
-    print()
+    # Header
+    print("\n" + "=" * 85)
+    header = f"{'METRIC':<30} |"
+    for m in models:
+        header += f" {m[:15]:<15} |"
+    print(header)
+    print(f"{'-'*30}-+-{'-'*16}-+-{'-'*16}-")
+
+    rows = [
+        ("Code Leakage (Lower is better)", "CLR", "%"),
+        ("Direct Answer (Lower is better)", "DAR", "%"),
+        ("Fact Correctness (Higher is better)", "FCR", "%"),
+        ("Socratic Score (1-5)", "SQ", ""),
+        ("Helpfulness (1-5)", "Helpfulness", ""),
+    ]
+
+    for label, key, unit in rows:
+        row_str = f"{label:<30} |"
+        for m in models:
+            val = metrics_map.get(m, {}).get(key, 0)
+            if isinstance(val, (int, float)):
+                row_str += f" {val:8.2f}{unit:<7} |"
+            else:
+                row_str += f" {str(val):<15} |"
+        print(row_str)
+
+    print("=" * 85 + "\n")
 
 
 # ========================================
 # MAIN
 # ========================================
 
-def main():
-    """Main evaluation function."""
-    
-    # Load test data
-    test_cases_path = "../data/test_cases.json"
-    test_responses_path = "../data/test_responses.json"
-    
-    if not os.path.exists(test_cases_path):
-        print(f"❌ Error: {test_cases_path} not found")
-        print("\nRun generate_test_cases.py first to create test cases.")
+
+def main() -> None:
+    if not os.path.exists(RESPONSES_PATH):
+        print(f"❌ Error: {RESPONSES_PATH} not found.")
+        print("Run generate_test_responses.py first.")
         return
-    
-    if not os.path.exists(test_responses_path):
-        print(f"❌ Error: {test_responses_path} not found")
-        print("\nRun generate_test_responses.py first to generate model responses.")
+
+    if not os.path.exists(TEST_CASES_PATH):
+        print(f"❌ Error: {TEST_CASES_PATH} not found.")
+        print("Run generate_test_cases.py first.")
         return
-    
-    print("Loading test data...")
-    with open(test_cases_path, 'r') as f:
+
+    with open(TEST_CASES_PATH, "r") as f:
         test_cases = json.load(f)
-    
-    with open(test_responses_path, 'r') as f:
-        responses = json.load(f)
-    
-    if len(test_cases) != len(responses):
-        print(f"⚠️  Warning: {len(test_cases)} test cases but {len(responses)} responses")
-        # Use minimum length
-        n = min(len(test_cases), len(responses))
-        test_cases = test_cases[:n]
-        responses = responses[:n]
-    
-    # Run evaluation
-    eval_results = evaluate_responses(test_cases, responses, use_claude=True)
-    
-    # Calculate metrics
-    metrics = calculate_metrics(eval_results)
-    
-    # Display results
-    display_results(metrics, eval_results)
-    
-    # Save detailed results
-    output_path = "../data/evaluation_results.json"
-    output = {
-        "metrics": metrics,
-        "detailed_results": eval_results
-    }
-    
-    with open(output_path, 'w') as f:
-        json.dump(output, f, indent=2)
-    
-    print(f"💾 Detailed results saved to: {output_path}")
+    with open(RESPONSES_PATH, "r") as f:
+        all_responses = json.load(f)
+
+    # Initialize OpenAI Client
+    try:
+        client = openai.OpenAI()
+    except Exception as e:
+        print(f"❌ Failed to initialize OpenAI client: {e}")
+        print("Check your .env file for OPENAI_API_KEY")
+        return
+
+    final_metrics: Dict[str, Dict] = {}
+    detailed_logs: Dict[str, List[Dict]] = {}
+
+    print(f"Starting Evaluation using {OPENAI_MODEL}...")
+
+    for model_name, responses in all_responses.items():
+        print(f"\n🤖 Evaluating: {model_name}")
+        results: List[Dict] = []
+
+        limit = min(len(test_cases), len(responses))
+
+        for i in range(limit):
+            print(f"\r  Case {i+1}/{limit}...", end="", flush=True)
+
+            case = test_cases[i]
+            buggy_code = case.get("buggy_code", "")
+            if not buggy_code and "full_user_message" in case:
+                match = re.search(r"```python\s*\n(.*?)\n```", case["full_user_message"], re.DOTALL)
+                if match:
+                    buggy_code = match.group(1)
+                else:
+                    buggy_code = "No code found"
+
+            res = evaluate_single_response(client, buggy_code, responses[i])
+            results.append(res)
+
+        metrics = calculate_metrics(results)
+        final_metrics[model_name] = metrics
+        detailed_logs[model_name] = results
+
+        print(f"\n  ✅ Done. SQ: {metrics.get('SQ', 0):.2f}, CLR: {metrics.get('CLR', 0):.1f}%")
+
+    # Save to disk
+    with open(RESULTS_PATH, "w") as f:
+        json.dump({"metrics": final_metrics, "logs": detailed_logs}, f, indent=2)
+
+    print(f"\n💾 Detailed results saved to: {RESULTS_PATH}")
+
+    # Display Comparison
+    if final_metrics:
+        print_comparison_table(final_metrics)
+    else:
+        print("\n❌ No metrics were calculated. Check error logs.")
 
 
 if __name__ == "__main__":

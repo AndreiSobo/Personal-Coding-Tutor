@@ -4,7 +4,7 @@
 
 # LLM APIs (for LLM-as-Judge evaluation)
 anthropic>=0.18.0
-openai>=1.12.0
+openai>=1.12.0 # changed to 2.20.0 otherwise it would not run
 
 # Utilities
 python-dotenv>=1.0.0
