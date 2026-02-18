@@ -52,11 +52,6 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 ```
 
-Get these values from your Supabase project settings:
-- Go to [Supabase Dashboard](https://supabase.com/dashboard)
-- Select your project
-- Navigate to Settings → API
-- Copy the Project URL and anon/public key
 
 4. Run the development server:
 ```bash
