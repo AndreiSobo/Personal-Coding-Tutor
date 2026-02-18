@@ -1,11 +1,12 @@
 interface ConsoleProps {
     output: string[]
     isLoading?: boolean
+    className?: string
 }
 
-export default function Console({ output, isLoading }: ConsoleProps) {
+export default function Console({ output, isLoading, className }: ConsoleProps) {
     return (
-        <div className="bg-black text-green-400 font-mono p-4 rounded-lg h-[60vh] overflow-y-auto border border-gray-700 shadow-inner">
+        <div className={className || "bg-black text-green-400 font-mono p-4 rounded-lg h-[60vh] overflow-y-auto border border-gray-700 shadow-inner"}>
             <div className="text-gray-500 mb-2 border-b border-gray-700 pb-1">Output Console</div>
 
             {isLoading ? (
