@@ -13,11 +13,12 @@ loader.config({
 interface CodeEditorProps {
     initialCode?: string
     onChange?: (value: string | undefined) => void
+    className?: string
 }
 
-export default function CodeEditor({ initialCode = "# Type your code...", onChange }: CodeEditorProps) {
+export default function CodeEditor({ initialCode = "# Type your code...", onChange, className }: CodeEditorProps) {
     return (
-        <div className="h-[60vh] w-full border border-gray-300 rounded-lg overflow-hidden shadow-sm">
+        <div className={className || "h-[60vh] w-full border border-gray-300 rounded-lg overflow-hidden shadow-sm"}>
             <Editor
                 height="100%"
                 defaultLanguage="python"
