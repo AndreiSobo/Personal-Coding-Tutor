@@ -21,11 +21,14 @@
 
 **PACT (Personal AI Coding Tutor)** is a web-based interactive coding environment designed to help users learn programming. The platform enables users to:
 - Write and execute Python code directly in the browser
+- Receive Socratic guidance (hints, questions) from a custom AI tutor
 - View real-time output in a terminal-style console
 - Authenticate securely with persistent sessions
 - Access their personalized coding workspace
 
-The frontend serves as an interactive IDE where users can practice coding problems and iterate on solutions—all without needing local Python installation. The application is built with modern web technologies and runs Python entirely in the browser using WebAssembly, eliminating the need for backend code execution infrastructure.
+The frontend serves as an interactive IDE where users can practice coding problems and iterate on solutions—all without needing local Python installation. The application is built with modern web technologies and runs Python entirely in the browser using WebAssembly.
+
+What sets PACT apart is its **custom machine learning pipeline**. Instead of using generic LLMs that simply solve problems for students, PACT uses a fine-tuned version of Qwen 2.5 (7B) specifically trained to act as a Socratic tutor—guiding students to the answer rather than revealing it.
 
 ---
 
@@ -33,18 +36,24 @@ The frontend serves as an interactive IDE where users can practice coding proble
 
 ### Core Framework: Next.js 16
 **Why Next.js?**
-- **Server-Side Rendering (SSR)**: Enables fast initial page loads and SEO optimization
+- **Server-Side Rendering (SSR)**: Enables fast initial page loads
 - **App Router**: Modern file-based routing with React Server Components support
-- **API Routes**: Built-in backend endpoints for authentication callbacks
+- **API Routes**: Built-in backend endpoints for authentication and **AI inference**
 - **Middleware Support**: Edge-compatible request interception for auth checks
 - **TypeScript Support**: First-class TypeScript integration out of the box
+
+### Machine Learning Infrastructure
+**Why Custom Training?**
+- Generic models (GPT-5.2, Claude) often "leak" answers too easily
+- Custom fine-tuning ensures consistent pedagogical behavior (Socratic method)
+- **Qwen 2.5 7B Instruct**: Chosen for its strong coding reasoning capabilities and efficient size
+- **Hugging Face Inference Endpoints**: Provides low-latency, scalable inference for the model
 
 ### Runtime: Node.js
 **Why Node.js?**
 - Required by Next.js for server-side operations
 - Handles server components, middleware execution, and build processes
 - Provides npm ecosystem access for dependency management
-- Enables serverless function deployment on platforms like Vercel
 
 ### UI Library: React 19
 **Why React?**
@@ -53,6 +62,56 @@ The frontend serves as an interactive IDE where users can practice coding proble
 - Hooks for state management (useState, useEffect, useRef)
 - Client/Server component distinction in Next.js App Router
 - Large ecosystem and community support
+
+---
+
+## Machine Learning Pipeline
+
+The project includes a comprehensive offline pipeline for creating the "PACT" tutor model. This pipeline is located in the `scripts/` directory and operates independently of the web application.
+
+### 1. Dataset Generation (`scripts/dataset`)
+Since high-quality "Socratic dialogue" data is scarce, I generated a synthetic dataset:
+1.  **Source Problems**: Sourced from LeetCode-style coding problems.
+2.  **Synthetic Errors**: Used **Claude** to generate realistic student errors (logic bugs, syntax errors, off-by-one errors) for each problem.
+3.  **Socratic Hints**: For each error, Claude generates a pedagogical hint that guides the student without revealing the code.
+4.  **Validation**: **GPT-5.2** acts as a validator to ensure:
+    - The buggy code actually fails.
+    - The hint is helpful but not a giveaway.
+5.  **Rejection Sampling**: Low-quality examples are discarded or revised.
+
+### 2. Model Training (`scripts/training`)
+- **Base Model**: `Qwen/Qwen2.5-7B-Instruct`
+- **Technique**: **QLoRA** (Quantized Low-Rank Adaptation)
+    - Loads the base model in 4-bit precision to reduce VRAM usage.
+    - Trains low-rank adapters (adapters are small additional weights).
+- **Optimization**: Used `peft` and `trl` libraries for efficient fine-tuning.
+- **Quantization**: The final model is quantized using **AWQ** (Activation-aware Weight Quantization) for faster inference.
+
+### 3. Evaluation (`scripts/evaluation`)
+- **LLM-as-a-Judge**: A frontier LLM evaluates the PACT model's responses. The chosen model was ChatGPT-5.2
+- **Metrics**:
+    - **Code Leakage**: Does the response contain executable code that solves the problem? (Yes/No)
+    - **Direct Answer**: Did the model explicitly state the fix? (Yes/No)
+    - **Socratic Quality**: How well does it guide through questions? (1-5)
+    - **Helpfulness**: Would this actually help the user? (1-5)
+    - **Factual Correctness**: Is the technical content accurate? (Yes/No)
+
+The answers are averaged over the validation dataset to obtain the score. Moreover, the LLM-as-Judge ran against both the PACT model and the quantized PACT, comparing the results between the two.
+
+
+| Model             | Code Leakage Rate | Direct Answer | Socratic Quality | Helpfulness | Factual Correctness   |
+|-------------------|-------------------|---------------|------------------|-------------|-----------------------|
+| Original (fp16)   | 0.0               | 0.0           | 4.478            | 2.521       | 82.608                |
+| Quantized (fp4)   | 0.0               | 0.0           | 4.347            | 2.739       | 60.869                |
+
+
+
+### 4. Inference Architecture
+- **Current State**: Validated via Jupyter Notebooks (`scripts/notebooks/local_inference.ipynb`) using Hugging Face Inference Endpoints.
+- **Planned Integration**:
+    - **Frontend**: "Get Hint" button in the Dashboard.
+    - **Backend**: Next.js API Route acts as a secure proxy.
+    - **Flow**: User Code + Problem Context -> API Route -> Hugging Face Endpoint -> AI Hint -> Frontend.
 
 ---
 
@@ -319,7 +378,7 @@ options={{
 className="bg-black text-green-400 font-mono"
 ```
 - **Black background**: Classic terminal aesthetic
-- **Green text**: Retro terminal look (like old CRT monitors)
+- **Green text**: Retro terminal look
 - **Monospace font**: Aligns code output properly
 
 **Loading State:**
@@ -668,6 +727,14 @@ personal-coding-tutor/
 │
 ├── documentation/
 │   └── documentation.md      # This file
+├── scripts/
+│   └── data/           # json and jsonl files with datasets
+│   └── dataset/        # Scripts required to create, validate, analyse and upload the custom PACT dataset
+│   └── evaluation/     # Scripts to evaluate the two saved models: PACT and PACT quantized 
+│   └── notebooks/      # Notebooks used in various tasks, mainly to test things locally (model inference etc.)
+│   └── training/       # Scripts required to train the PACT models , then upload to Hugging Face
+│   └── .env            # API keys for OpenAI, Anthropic, Hugging Face and WandB used in ML pipeline
+│   └── README.md       # Specific documentation of the ML pipeline
 │
 ├── public/                   # Static assets
 │
@@ -709,25 +776,7 @@ personal-coding-tutor/
    - Load previous sessions on login
    - Version history with undo/redo
 
-3. **Collaborative Features**
-   - Real-time code sharing (Supabase Realtime)
-   - Multiplayer debugging sessions
-   - Instructor/student mode
 
-4. **Enhanced Python Support**
-   - Install additional Pyodide packages dynamically
-   - Support for file uploads (CSV, images)
-   - Matplotlib chart rendering in console
-
-5. **Testing & Validation**
-   - Unit test runner for code challenges
-   - Automated test case validation
-   - Progress tracking and achievements
-
-6. **Protected Routes**
-   - Add server-side auth checks in dashboard
-   - Redirect unauthorized users to login
-   - Role-based access control (admin, student, instructor)
 
 ### Scalability Notes
 
@@ -778,7 +827,7 @@ npx tsc --noEmit
 
 ## Environment Variables Required
 
-Create a `.env.local` file in the project root:
+Created a `.env.local` file in the project root:
 
 ```bash
 # Supabase Configuration
@@ -795,11 +844,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 5. Copy the **anon/public key** (for `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
 
 **Important Notes:**
-- The `.env.local` file is git-ignored and won't be committed
 - The `NEXT_PUBLIC_` prefix makes these variables accessible in the browser
-- The anon key is safe to expose—it only allows operations permitted by your database's Row Level Security (RLS) policies
-- Never commit the service role key to git (we don't use it in this project)
-
 ---
 
 ## Conclusion
@@ -810,5 +855,3 @@ This project demonstrates a modern, production-ready Next.js application with:
 - **Responsive Design**: Tailwind CSS with mobile-first approach
 - **SSR & Middleware**: Next.js App Router for optimal performance
 - **Type Safety**: Full TypeScript coverage
-
-The architecture prioritizes developer experience, user security, and future extensibility—making it an excellent reference for building educational coding platforms.

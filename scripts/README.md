@@ -1,183 +1,170 @@
-# PACT Scripts
+# PACT Scripts - Machine Learning Pipeline
 
-This directory contains the ML pipeline scripts for PACT (Personalised AI Coding Tutor).
+This directory contains the complete Machine Learning pipeline for the **Personalised AI Coding Tutor (PACT)**. 
 
-These scripts are **separate from the web application** and run independently to:
-1. Generate the training dataset
-2. Fine-tune the Qwen model
-3. Evaluate model quality
+These scripts operate independently from the web application to:
+1.  **Generate a Synthetic Socratic Dataset**: Create a high-quality dataset of student errors and corresponding Socratic hints using Claude and GPT-4.
+2.  **Fine-Tune the Model**: Train a custom version of Qwen 2.5 7B Instruct to act as a Socratic tutor.
+3.  **Evaluate Performance**: Benchmark the model against pedagogical metrics (e.g., code leakage, direct answer rate).
+4.  **Inference Testing**: Validate model behavior before deployment.
+
+## Pipeline Architecture
+
+The pipeline is designed to be modular and reproducible.
+
+### 1. Dataset Generation (`/dataset`)
+Since high-quality "Socratic dialogue" data is scarce, we built a synthetic data generation pipeline:
+*   **Source**: LeetCode-style coding problems.
+*   **Generator (Claude 3.5 Sonnet)**: Simulates realistic student mistakes (logic bugs, syntax errors) and writes pedagogical hints.
+*   **Validator (GPT-5.2)**: acts as a quality gate, ensuring the buggy code actually fails and the hint is helpful without giving away the answer.
+*   **Outcome**: A dataset of **227 high-quality** (Buggy Code, Socratic Hint) pairs.
+
+### 2. Model Training (`/training`)
+*   **Base Model**: `Qwen/Qwen2.5-7B-Instruct` (chosen for reasoning capabilities).
+*   **Method**: **QLoRA** (Quantized Low-Rank Adaptation) on a single NVIDIA RTX 4090 (24GB VRAM).
+*   **Configuration**:
+    *   4-bit quantization.
+    *   LoRA rank 16 / Alpha 32.
+*   **Infrastructure**: Trained on **RunPod.io** cloud GPU instances.
+
+### 3. Evaluation (`/evaluation`)
+*   **Approach**: **LLM-as-a-Judge**.
+*   **Metrics**:
+    *   **Socratic Quality**: Does the model ask guiding questions?
+    *   **Code Leakage**: Does the model reveal code snippets? (Strictly penalized).
+    *   **Direct Answer**: Does the model give the answer away?
+    *   **Helpfulness**: Would this hint actually help the user?
+    *   **Factual Corectness**: Is the hint technically accurate?
+
+---
 
 ## Directory Structure
 
 ```
 scripts/
-├── dataset/              # Dataset generation pipeline
-│   ├── step1_prepare_problems.py
-│   ├── step2_generate_examples.py
-│   ├── step3_validate_examples.py
-│   ├── step4_revise_examples.py
-│   ├── step5_format_for_training.py
-│   ├── step6_final_check.py
-│   └── requirements.txt
+├── dataset/              # Synthetic Data Generation
+│   ├── step1_prepare_problems.py    # Loads source problems
+│   ├── step2_generate_examples.py   # Claude generates bugs + hints
+│   ├── step2_5_adjust_problems.py   # Refines source problems
+│   ├── step3_validate_examples.py   # GPT-5.2 validates pedagogical quality
+│   ├── step3_5_merge_datasets.py    # Merges validation results
+│   ├── step3_6_analyse_results.py   # Stat analysis of dataset
+│   ├── step4_revise_examples.py     # Revies rejected examples
+│   └── step5_format_for_training.py # Prepares JSONL for training
 │
-├── training/             # Model fine-tuning
-│   ├── train_qwen.py
-│   ├── merge_weights.py
-│   ├── upload_to_hf.py
-│   └── requirements.txt
+├── training/             # Fine-Tuning Pipeline
+│   ├── train_qwen.py              # Main QLoRA training script
+│   ├── merge_weights.py           # Merges LoRA adapters into base model
+│   ├── quantize_model.py          # Quantizes model for inference (AWQ)
+│   └── upload_to_hf.py            # Uploads models to Hugging Face
 │
-├── evaluation/           # Model evaluation
-│   ├── evaluate_socratic.py
-│   ├── check_hallucinations.py
-│   └── requirements.txt
+├── evaluation/           # Evaluation Benchmarks
+│   ├── evaluate_socratic.py       # LLM-as-a-Judge evaluation script
+│   ├── generate_test_cases.py     # Creates hold-out test set
+│   └── generate_test_responses.py # Batch generates model answers
 │
-├── data/                 # Generated data (gitignored)
-│   ├── source_problems.json
-│   ├── generated_examples_raw.json
-│   ├── training_data.jsonl
+├── notebooks/            # Interactive Experimentation
+│   ├── local_inference.ipynb      # Tests inference with local GPU / HF Endpoints
+│   ├── generate_test_responses.ipynb # Interactive response generation
+│   └── publish_dataset.ipynb      # Manage Hugging Face dataset uploads
+│
+├── data/                 # Data Artifacts
+│   ├── training_dataset_final.json
 │   └── ...
-│
-├── .env                  # API keys (create from .env.template)
-└── README.md             # This file
 ```
 
-## Quick Start
 
-### 1. Setup Environment
+### 4. Train Model (Cloud Infrastructure)
 
-```bash
-# Navigate to scripts directory
-cd scripts
+Training was done on **RunPod.io**. Other cloud providers were evaluated but the cost made RunPod a good choice.
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+**Specs**:
+- **GPU**: NVIDIA RTX 4090 (24GB VRAM)
+- **Disk**: 50GB+ Container Disk, 50GB+ Volume Disk
 
-# Install dependencies (choose based on what you need)
-pip install -r dataset/requirements.txt     # For dataset generation
-pip install -r training/requirements.txt    # For model training
-pip install -r evaluation/requirements.txt  # For evaluation
-```
+**Deployment Steps on RunPod**:
+1.  **Launch Pod**: Select a `RunPod PyTorch 2.X` template with a 4090 GPU.
+2.  **Connect**: Open the Web Terminal or connect via SSH.
+3.  **Setup**:
+    ```bash
+    git clone https://github.com/YOUR_USERNAME/personal-coding-tutor.git
+    cd personal-coding-tutor/scripts
+    pip install -r training/requirements.txt
+    ```
+4.  **Environment Variables**:
+    Since login is done via API keys, a `.env` file was created for the scripts to authenticate with Hugging Face, OpenAI, and Anthropic.
+    
+    ```bash
+    echo "HF_TOKEN=your_token_here" > .env
+    echo "WANDB_API_KEY=your_key_here" >> .env
+    echo "OPENAI_API_KEY=your_key_here" >> .env
+    echo "ANTHROPIC_API_KEY=your_key_here" >> .env
+    ```
+5.  **Run Training**:
+    ```bash
+    cd training
+    # Test run (sanity check)
+    python train_qwen.py --max_steps 1 --max_examples 10
+    
+    # Full training run
+    python train_qwen.py
+    ```
+    
 
-### 2. Configure API Keys
+6.  **Merge & Upload**:
+    ```bash
+    # Merge LoRA adapters with base model
+    python merge_weights.py
+    
+    # Quantize (Optional for faster inference)
+    python quantize_model.py
 
-```bash
-# Copy the template
-cp .env.template .env
+    # Upload to Hugging Face (Uses HF_TOKEN from .env)
+    python upload_to_hf.py
+    ```
 
-# Edit .env and add your keys
-nano .env
-```
-
-### 3. Generate Dataset
-
-```bash
-cd dataset
-
-# Step 1: Load problems from LeetCode dataset
-python step1_prepare_problems.py
-
-# Step 2: Generate training examples with Claude
-python step2_generate_examples.py
-
-# Step 3: Validate with GPT-4
-python step3_validate_examples.py
-
-# Step 4: Revise problematic examples
-python step4_revise_examples.py
-
-# Step 5: Format for Qwen training
-python step5_format_for_training.py
-
-# Step 6: Final quality check
-python step6_final_check.py
-```
-
-### 4. Train Model
-
-```bash
-cd training
-
-# Fine-tune with QLoRA
-python train_qwen.py
-
-# Merge adapter weights
-python merge_weights.py
-
-# Upload to Hugging Face (edit HF_USERNAME first!)
-python upload_to_hf.py
-```
-importantly, since the training was done on RunPod, the following steps were taken:
-1. create a pod - the selected configuration was a 4090 GPU with 24G of vRAM and 100GB of space.
-2. connec tto the pod via terminal on RunPod.io platform
-3. clone the github repo there
-4. use "echo" to write the necessary keys into the .env file. This file must be located in the "scripts" folder
-12. run pip install -r requirements.txt
-5. run python scripts for training
-6. test run: python train_qwen.py --max_steps 1 --max_examples 10
-7. actual run: 
 ### 5. Evaluate Model
 
 ```bash
 cd evaluation
 
-# Generate test responses from your model first, then:
-python evaluate_socratic.py
-python check_hallucinations.py
+python generate_test_cases.py           # generate a json file with the evaluation dataset
+python generate_test_responses.py       # iterate through each test case and run inference on both PACT and quantized PACT 
+python evaluate_socratic.py             # implement LLM-as-judge to evaluate the answers
 ```
+
+## Inference Pipeline
+
+The inference infrastructure can be a complex process, therefore for simplicity and reduced costs, I opted for a Hugging Face Inference Endpoint solution, where an API connected to a GPU instance is used to query the model.
+
+Importantly, this required a handler.py and a requirements.txt files to be created on the model repository. 
+
+*   **Notebook**: `notebooks/local_inference.ipynb` has examples of how to run inference
+
 
 ## Dataset Pipeline Details
 
-| Step | Script | Input | Output | Description |
-|------|--------|-------|--------|-------------|
-| 1 | `step1_prepare_problems.py` | HuggingFace dataset | `source_problems.json` | Load & filter LeetCode problems |
-| 2 | `step2_generate_examples.py` | `source_problems.json` | `generated_examples_raw.json` | Generate buggy code + hints with Claude |
-| 3 | `step3_validate_examples.py` | `generated_examples_raw.json` | `examples_passed.json`, `examples_needs_revision.json` | Validate with GPT-4 |
-| 4 | `step4_revise_examples.py` | `examples_needs_revision.json` | `training_dataset_final.json` | Fix problematic hints |
-| 5 | `step5_format_for_training.py` | `training_dataset_final.json` | `training_data.jsonl` | Convert to Qwen chat format |
-| 6 | `step6_final_check.py` | `training_data.jsonl` | Console report | Automated quality checks |
+Research showed a clear lack of datasets containing incorrect code, that I may use to train the model. Therefore, I built a comprehensive synthetic data generation and validation pipeline. This approach leverages an LLM-as-a-Judge architecture to filter, score, and revise the training data before fine-tuning.
 
-## Evaluation Metrics
+The pipeline consists of the following automated steps (located in `scripts/dataset/`):
 
-### Automated Metrics (No API Required)
-- **Code Leakage Rate (CLR)**: % of responses containing code (target: < 5%)
-- **Guiding Question Rate (GQR)**: % of responses with questions (target: > 70%)
-- **Direct Answer Rate (DAR)**: % of responses revealing answers (target: < 10%)
+1. **Problem Preparation (`step1_prepare_problems.py`)**: Sourcing and formatting base Python coding problems (e.g., from `source_problems.json`) to serve as the context for the synthetic conversations.
+2. **Synthetic Generation (`step2_generate_examples.py` & `step2_5_adjust_problems.py`)**: Prompting a frontier LLM to act as a student and a Socratic tutor, generating multi-turn conversational data where the student presents buggy code and the tutor provides guided hints.
+3. **LLM-as-a-Judge Validation (`step3_validate_examples.py` & `step3_6_analyse_results.py`)**: A critical quality control step where an evaluator LLM reviews the generated conversations against strict Socratic criteria. Examples are categorized into `passed`, `rejected`, or `needs_revision`.
+4. **Automated Revision (`step4_revise_examples.py`)**: Taking the examples flagged for revision and feeding them back into the LLM with critique prompts to correct issues (such as accidental code leakage) and salvage the data.
+5. **Formatting and Merging (`step3_5_merge_datasets.py` & `step5_format_for_training.py`)**: Compiling the final, validated examples into the required ChatML/JSONL format (`qwen_training_data.jsonl`) for the Hugging Face `SFTTrainer`.
 
-### LLM-as-Judge Metrics
-- **Socratic Quality**: 1-5 scale rating
-- **Helpfulness**: 1-5 scale rating
-- **Error Identification Accuracy**: Does hint address actual bug?
-- **Factual Correctness**: Is technical content accurate?
+## Evaluation Metrics using the LLM-as-Judge
 
-## Estimated Costs
-
-| Task | API | Estimated Cost |
-|------|-----|----------------|
-| Generate 300 examples | Claude | ~$5-10 |
-| Validate 300 examples | GPT-4 | ~$3-5 |
-| Revise ~50 examples | Claude | ~$1-2 |
-| LLM-as-Judge eval (50 samples) | Claude/GPT-4 | ~$1-2 |
-| Training (RunPod A100) | - | ~$2-5 |
+- **Socratic Quality**: How well does it guide through questions? (1-5)
+- **Code leakage rate**: Does the response contain executable code that solves the problem? (Yes/No)
+- **Direct Answer**: Does it directly tell the user the fix? (Yes/No)
+- **Helpfulness**: Would this actually help the user? (1-5)
+- **Factual Correctness**: Is technical content accurate? (Yes/No)
 
 ## Troubleshooting
 
-### "Rate limit exceeded"
-- Add `time.sleep(1)` between API calls
-- Use smaller batches
+### "Dependency hell" library versions that work with eachother and all the platforms
+- It was quite challenging to navigate the different platforms and find the correct library versions that they all accepted. If anyone is interested in a similar project, I strongly suggest they use the dependency versions mentioned in projects that have successfully done these tasks - alternatively, copy mine.
 
-### "Out of memory" during training
-- Reduce `BATCH_SIZE` in train_qwen.py
-- Increase `GRADIENT_ACCUMULATION` to maintain effective batch size
-- Use a GPU with more VRAM
 
-### "Model not found" on Hugging Face
-- Check HF_USERNAME in upload_to_hf.py
-- Verify you're logged in: `huggingface-cli login`
-
-## Notes
-
-- These scripts are for **one-time use** during development
-- The web app does NOT depend on these scripts at runtime
-- Generated data in `data/` should be gitignored (large files)
-- Always review a sample of generated data manually before training
