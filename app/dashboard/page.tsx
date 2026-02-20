@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -34,6 +34,12 @@ export default function DashboardPage() {
 
   const router = useRouter()
   const supabase = createClient()
+
+  // Fire-and-forget: wake the PACT model container on dashboard load
+  // so it's ready by the time the user needs a hint
+  useEffect(() => {
+    fetch('/api/hint/warm').catch(() => { })
+  }, [])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -107,15 +113,14 @@ export default function DashboardPage() {
                 <button
                   key={d}
                   onClick={() => setDifficulty(d)}
-                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium border transition-colors ${
-                    difficulty === d
-                      ? d === 'Easy'
-                        ? 'bg-green-100 border-green-500 text-green-700'
-                        : d === 'Medium'
-                          ? 'bg-yellow-100 border-yellow-500 text-yellow-700'
-                          : 'bg-red-100 border-red-500 text-red-700'
-                      : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'
-                  }`}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium border transition-colors ${difficulty === d
+                    ? d === 'Easy'
+                      ? 'bg-green-100 border-green-500 text-green-700'
+                      : d === 'Medium'
+                        ? 'bg-yellow-100 border-yellow-500 text-yellow-700'
+                        : 'bg-red-100 border-red-500 text-red-700'
+                    : 'bg-white border-gray-300 text-gray-600 hover:bg-gray-50'
+                    }`}
                 >
                   {d}
                 </button>
@@ -153,11 +158,10 @@ export default function DashboardPage() {
           <button
             onClick={handleFindProblem}
             disabled={isSearching}
-            className={`w-full py-3 rounded-md font-medium text-white transition-all ${
-              isSearching
-                ? 'bg-gray-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg'
-            }`}
+            className={`w-full py-3 rounded-md font-medium text-white transition-all ${isSearching
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg'
+              }`}
           >
             {isSearching ? 'Searching...' : 'Find Problem →'}
           </button>
