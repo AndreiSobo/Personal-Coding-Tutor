@@ -70,14 +70,14 @@ export default function ProblemPage() {
     if (slug) fetchProblem()
   }, [slug])
 
-  // ── Run Tests ──────────────────────────────────────────────
+  // Run tests
 
   const handleRun = useCallback(async () => {
     if (!problem) return
     await runTests(code, problem.entry_point, problem.input_output)
   }, [code, problem, runTests])
 
-  // ── Submit Solution ────────────────────────────────────────
+  // Submit
 
   const handleSubmit = useCallback(async () => {
     if (!problem || !testSummary?.allPassed || isSubmitted) return
@@ -114,9 +114,8 @@ export default function ProblemPage() {
     }
   }, [problem, testSummary, isSubmitted, hintsUsed, supabase, router])
 
-  // ── Request Hint ───────────────────────────────────────────
+  // Request Hint
   // Calls /api/hint (server-side route) which forwards to HuggingFace.
-  // The HF token and endpoint URL never reach the browser.
 
   const handleRequestHint = useCallback(async () => {
     if (!problem || isRequestingHint) return
@@ -174,7 +173,7 @@ export default function ProblemPage() {
     setIsRequestingHint(false)
   }, [problem, code, hints, isRequestingHint])
 
-  // ── Show Answer ────────────────────────────────────────────
+  // Show answer
 
   const handleShowAnswer = useCallback(async () => {
     if (!problem || !canShowAnswer) return
@@ -197,7 +196,7 @@ export default function ProblemPage() {
     setShowSolution(true)
   }, [problem, canShowAnswer, solutionCode, supabase])
 
-  // ── Render ─────────────────────────────────────────────────
+  // Render
 
   if (loading) {
     return (
