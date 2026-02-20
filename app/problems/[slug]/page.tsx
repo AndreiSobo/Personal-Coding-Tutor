@@ -40,6 +40,7 @@ export default function ProblemPage() {
   const [hints, setHints] = useState<string[]>([])
   const [hintsUsed, setHintsUsed] = useState(0)
   const [isRequestingHint, setIsRequestingHint] = useState(false)
+  const [hintError, setHintError] = useState<string | null>(null)
 
   // Show Answer state
   const [solutionCode, setSolutionCode] = useState<string | null>(null)
@@ -114,48 +115,64 @@ export default function ProblemPage() {
   }, [problem, testSummary, isSubmitted, hintsUsed, supabase, router])
 
   // ── Request Hint ───────────────────────────────────────────
-  // TODO: Replace mock with actual PACT model endpoint call
+  // Calls /api/hint (server-side route) which forwards to HuggingFace.
+  // The HF token and endpoint URL never reach the browser.
 
   const handleRequestHint = useCallback(async () => {
     if (!problem || isRequestingHint) return
     setIsRequestingHint(true)
+    setHintError(null)
 
-    try {
-      // TODO: Replace with actual HuggingFace Inference Endpoint call
-      // const response = await fetch(PACT_ENDPOINT_URL, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({
-      //     problem_description: problem.description,
-      //     starter_code: problem.starter_code,
-      //     user_code: code,
-      //     hints_so_far: hints,
-      //   }),
-      // })
-      // const data = await response.json()
-      // const hint = data.generated_text
+    // Retry logic for cold starts (503) and timeouts (504)
+    const MAX_RETRIES = 2
+    let lastError = ''
 
-      // Mock hint for now
-      const mockHints = [
-        "Think about what data structure would let you look up values in O(1) time.",
-        "Consider iterating through the input once while keeping track of what you've seen.",
-        "You're on the right track. What if you stored each element's index as you go?",
-        "Try breaking the problem into smaller subproblems.",
-        "Consider edge cases: what happens with empty inputs or single elements?",
-      ]
-      const hint = mockHints[hintsUsed % mockHints.length]
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const response = await fetch('/api/hint', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            problem_description: problem.description,
+            user_code: code,
+            previous_hints: hints,
+          }),
+        })
 
-      // Simulate network delay
-      await new Promise((resolve) => setTimeout(resolve, 500))
+        const data = await response.json()
 
-      setHints((prev) => [...prev, hint])
-      setHintsUsed((prev) => prev + 1)
-    } catch (err) {
-      console.error('Hint request failed:', err)
-    } finally {
-      setIsRequestingHint(false)
+        if (response.ok && data.hint) {
+          setHints((prev) => [...prev, data.hint])
+          setHintsUsed((prev) => prev + 1)
+          setIsRequestingHint(false)
+          return
+        }
+
+        // Retryable errors: cold start or timeout
+        if (response.status === 503 || response.status === 504) {
+          lastError = data.error || 'Model is warming up...'
+          if (attempt < MAX_RETRIES) {
+            await new Promise((r) => setTimeout(r, 3000 * (attempt + 1)))
+            continue
+          }
+        }
+
+        // Non-retryable error
+        lastError = data.error || 'Failed to get hint.'
+        break
+      } catch (err) {
+        lastError = 'Network error. Please check your connection.'
+        if (attempt < MAX_RETRIES) {
+          await new Promise((r) => setTimeout(r, 2000))
+          continue
+        }
+        break
+      }
     }
-  }, [problem, code, hints, hintsUsed, isRequestingHint])
+
+    setHintError(lastError)
+    setIsRequestingHint(false)
+  }, [problem, code, hints, isRequestingHint])
 
   // ── Show Answer ────────────────────────────────────────────
 
@@ -163,7 +180,6 @@ export default function ProblemPage() {
     if (!problem || !canShowAnswer) return
 
     if (!solutionCode) {
-      // Fetch solution_code on demand (not sent on initial load)
       const { data, error } = await supabase
         .from('content_problems')
         .select('solution_code')
@@ -249,7 +265,9 @@ export default function ProblemPage() {
                     : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
                 }`}
               >
-                {isRequestingHint ? 'Thinking...' : `Get Hint (${hintsUsed} used)`}
+                {isRequestingHint
+                  ? 'PACT is thinking...'
+                  : `Get Hint (${hintsUsed} used)`}
               </button>
 
               <button
@@ -265,6 +283,13 @@ export default function ProblemPage() {
                 {canShowAnswer ? 'Show Answer' : `Show Answer (${3 - hintsUsed} more hints needed)`}
               </button>
             </div>
+
+            {/* Hint error */}
+            {hintError && (
+              <div className="bg-red-50 border border-red-200 rounded-md px-4 py-3 text-sm text-red-700">
+                {hintError}
+              </div>
+            )}
 
             {/* Display hints */}
             {hints.length > 0 && (
@@ -298,7 +323,6 @@ export default function ProblemPage() {
           <div className="flex justify-between items-center px-4 py-2 bg-white border-b shrink-0">
             <h2 className="font-semibold text-gray-700 text-sm">Solution</h2>
             <div className="flex items-center gap-2">
-              {/* Success message */}
               {isSubmitted && (
                 <span className="text-sm text-green-600 font-medium mr-2">
                   ✓ Submitted!
