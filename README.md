@@ -12,7 +12,7 @@ The WebApp can be accessed here: https://personal-coding-tutor.vercel.app/
 - **AI Socratic Tutor**: Custom model provides hints based on current code context.
 - **Monaco Code Editor**: Professional IDE experience.
 - **Secure Authentication**: User management powered by Supabase.
-- **No Backend Execution**: Code runs entirely in the browser for privacy and speed.
+- **No Backend Execution**: Code runs entirely in the browser for privacy and speed
 
 ## Technology Stack
 
