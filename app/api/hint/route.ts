@@ -12,14 +12,6 @@ const SYSTEM_PROMPT =
  *
  * Accepts: { problem_description, user_code, previous_hints }
  * Returns: { hint } or { error }
- *
- * The endpoint uses the Default Engine (not TGI), which expects:
- *   POST / with {"inputs": "...", "parameters": {...}}
- *   Returns [{"generated_text": "..."}]
- *
- * Since there is no /v1/chat/completions, the ChatML prompt is
- * constructed manually using <|im_start|> and <|im_end|> tokens
- * matching the Qwen 2.5 fine-tuning format.
  */
 export async function POST(request: NextRequest) {
     // ── 1. Verify the user is authenticated ──────────────────────
