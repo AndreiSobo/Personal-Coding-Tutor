@@ -1,799 +1,562 @@
-# PACT - Personal AI Coding Tutor
+# PACT — Personal AI Coding Tutor
 ## Project Documentation
 
 ---
 
 ## Table of Contents
-1. [Project Overview](#project-overview)
-2. [Technology Stack](#technology-stack)
-3. [Frontend Architecture](#frontend-architecture)
-4. [Authentication & Database](#authentication--database)
-5. [Component Deep Dive](#component-deep-dive)
-6. [Middleware & Request Handling](#middleware--request-handling)
-7. [Styling System](#styling-system)
-8. [Python Execution Engine](#python-execution-engine)
-9. [Project Structure](#project-structure)
-10. [Future Considerations](#future-considerations)
+
+1. [Project Overview](#1-project-overview)
+2. [Technology Stack](#2-technology-stack)
+3. [System Architecture](#3-system-architecture)
+4. [Machine Learning Pipeline](#4-machine-learning-pipeline)
+5. [Database Design](#5-database-design)
+6. [Data Seeding Pipeline](#6-data-seeding-pipeline)
+7. [Authentication System](#7-authentication-system)
+8. [Frontend Architecture](#8-frontend-architecture)
+9. [Python Execution Engine](#9-python-execution-engine)
+10. [Hint API — The Backend](#10-hint-api--the-backend)
+11. [Deployment](#11-deployment)
+12. [Project Structure](#12-project-structure)
+13. [Environment Variables](#13-environment-variables)
+14. [Development Commands](#14-development-commands)
+15. [Known Limitations](#15-known-limitations)
 
 ---
 
-## Project Overview
+## 1. Project Overview
 
-**PACT (Personal AI Coding Tutor)** is a web-based interactive coding environment designed to help users learn programming. The platform enables users to:
-- Write and execute Python code directly in the browser
-- Receive Socratic guidance (hints, questions) from a custom AI tutor
-- View real-time output in a terminal-style console
-- Authenticate securely with persistent sessions
-- Access their personalized coding workspace
+PACT (Personal AI Coding Tutor) is a full-stack web application that serves coding problems, executes Python code in the browser, validates solutions against test cases, and provides Socratic hints from a custom fine-tuned language model. The complete user flow is:
 
-The frontend serves as an interactive IDE where users can practice coding problems and iterate on solutions—all without needing local Python installation. The application is built with modern web technologies and runs Python entirely in the browser using WebAssembly.
+1. User logs in via Supabase authentication
+2. Selects a difficulty (Easy/Medium/Hard) and optionally a topic tag
+3. The system returns a random unsolved problem from a database of 2,641 LeetCode problems
+4. User writes Python code in a Monaco editor
+5. Clicks "Run" to validate their code against up to 10 test cases, executed client-side via Pyodide (WebAssembly)
+6. If stuck, clicks "Get Hint" to receive a Socratic hint from the PACT model — a fine-tuned Qwen 2.5 7B that guides through questions rather than giving answers
+7. After 3+ hints, the option to view the reference solution unlocks
+8. Once all tests pass, the user submits — the problem is recorded as solved and excluded from future selections
 
-What sets PACT apart is its **custom machine learning pipeline**. Instead of using generic LLMs that simply solve problems for students, PACT uses a fine-tuned version of Qwen 2.5 (7B) specifically trained to act as a Socratic tutor—guiding students to the answer rather than revealing it.
-
----
-
-## Technology Stack
-
-### Core Framework: Next.js 16
-**Why Next.js?**
-- **Server-Side Rendering (SSR)**: Enables fast initial page loads
-- **App Router**: Modern file-based routing with React Server Components support
-- **API Routes**: Built-in backend endpoints for authentication and **AI inference**
-- **Middleware Support**: Edge-compatible request interception for auth checks
-- **TypeScript Support**: First-class TypeScript integration out of the box
-
-### Machine Learning Infrastructure
-**Why Custom Training?**
-- Generic models (GPT-5.2, Claude) often "leak" answers too easily
-- Custom fine-tuning ensures consistent pedagogical behavior (Socratic method)
-- **Qwen 2.5 7B Instruct**: Chosen for its strong coding reasoning capabilities and efficient size
-- **Hugging Face Inference Endpoints**: Provides low-latency, scalable inference for the model
-
-### Runtime: Node.js
-**Why Node.js?**
-- Required by Next.js for server-side operations
-- Handles server components, middleware execution, and build processes
-- Provides npm ecosystem access for dependency management
-
-### UI Library: React 19
-**Why React?**
-- Component-based architecture for reusable UI elements
-- Virtual DOM for efficient updates
-- Hooks for state management (useState, useEffect, useRef)
-- Client/Server component distinction in Next.js App Router
-- Large ecosystem and community support
+What sets PACT apart from generic LLM-based tutors is its custom machine learning pipeline. Instead of using frontier models that tend to reveal solutions directly, PACT uses a QLoRA fine-tuned model specifically trained on a synthetic dataset of Socratic coding dialogues, evaluated using an LLM-as-judge framework to ensure it guides without leaking answers.
 
 ---
 
-## Machine Learning Pipeline
+## 2. Technology Stack
 
-The project includes a comprehensive offline pipeline for creating the "PACT" tutor model. This pipeline is located in the `scripts/` directory and operates independently of the web application.
-
-### 1. Dataset Generation (`scripts/dataset`)
-Since high-quality "Socratic dialogue" data is scarce, I generated a synthetic dataset:
-1.  **Source Problems**: Sourced from LeetCode-style coding problems.
-2.  **Synthetic Errors**: Used **Claude** to generate realistic student errors (logic bugs, syntax errors, off-by-one errors) for each problem.
-3.  **Socratic Hints**: For each error, Claude generates a pedagogical hint that guides the student without revealing the code.
-4.  **Validation**: **GPT-5.2** acts as a validator to ensure:
-    - The buggy code actually fails.
-    - The hint is helpful but not a giveaway.
-5.  **Rejection Sampling**: Low-quality examples are discarded or revised.
-
-### 2. Model Training (`scripts/training`)
-- **Base Model**: `Qwen/Qwen2.5-7B-Instruct`
-- **Technique**: **QLoRA** (Quantized Low-Rank Adaptation)
-    - Loads the base model in 4-bit precision to reduce VRAM usage.
-    - Trains low-rank adapters (adapters are small additional weights).
-- **Optimization**: Used `peft` and `trl` libraries for efficient fine-tuning.
-- **Quantization**: The final model is quantized using **AWQ** (Activation-aware Weight Quantization) for faster inference.
-
-### 3. Evaluation (`scripts/evaluation`)
-- **LLM-as-a-Judge**: A frontier LLM evaluates the PACT model's responses. The chosen model was ChatGPT-5.2
-- **Metrics**:
-    - **Code Leakage**: Does the response contain executable code that solves the problem? (Yes/No)
-    - **Direct Answer**: Did the model explicitly state the fix? (Yes/No)
-    - **Socratic Quality**: How well does it guide through questions? (1-5)
-    - **Helpfulness**: Would this actually help the user? (1-5)
-    - **Factual Correctness**: Is the technical content accurate? (Yes/No)
-
-The answers are averaged over the validation dataset to obtain the score. Moreover, the LLM-as-Judge ran against both the PACT model and the quantized PACT, comparing the results between the two.
-
-
-| Model             | Code Leakage Rate | Direct Answer | Socratic Quality | Helpfulness | Factual Correctness   |
-|-------------------|-------------------|---------------|------------------|-------------|-----------------------|
-| Original (fp16)   | 0.0               | 0.0           | 4.478            | 2.521       | 82.608                |
-| Quantized (fp4)   | 0.0               | 0.0           | 4.347            | 2.739       | 60.869                |
-
-
-
-### 4. Inference Architecture
-- **Current State**: Validated via Jupyter Notebooks (`scripts/notebooks/local_inference.ipynb`) using Hugging Face Inference Endpoints.
-- **Planned Integration**:
-    - **Frontend**: "Get Hint" button in the Dashboard.
-    - **Backend**: Next.js API Route acts as a secure proxy.
-    - **Flow**: User Code + Problem Context -> API Route -> Hugging Face Endpoint -> AI Hint -> Frontend.
+| Layer | Technology | Version | Purpose |
+|-------|-----------|---------|---------|
+| Framework | Next.js (App Router) | 16.0.7 | Full-stack React framework with server-side rendering and API routes |
+| Frontend | React | 19.2.0 | UI rendering with hooks-based state management |
+| Code Editor | Monaco Editor | 0.46.0+ | Browser-based code editor (same engine as VS Code) |
+| Python Runtime | Pyodide | 0.25.0 | CPython compiled to WebAssembly — runs Python entirely in the browser |
+| Auth & Database | Supabase | @supabase/ssr 0.8.0 | PostgreSQL database, JWT authentication, Row Level Security |
+| Styling | Tailwind CSS | 3.4.17 | Utility-first CSS framework |
+| Language | TypeScript | 5.x | Type-safe JavaScript across all frontend and server code |
+| Hosting | Vercel | — | Deploys Next.js with automatic serverless function creation |
+| AI Model | Qwen 2.5 7B Instruct (QLoRA + AWQ) | — | Fine-tuned Socratic coding tutor |
+| Inference | HuggingFace Inference Endpoints | — | GPU-backed model serving (Nvidia T4, AWS eu-west-1) |
+| Dataset | newfacade/LeetCodeDataset | train split | 2,641 coding problems with test cases |
 
 ---
 
-## Frontend Architecture
+## 3. System Architecture
 
-### App Router Structure
+The application has three distinct execution environments:
 
-The project uses Next.js 16's **App Router** (not Pages Router), which organizes routes based on folder structure:
+**Browser (Client)**
+Everything the user interacts with runs here: the React UI, Monaco editor, Pyodide Python runtime, and test execution. The browser communicates with two backends — Supabase for data and authentication, and the Vercel serverless function for hints.
+
+**Vercel (Server)**
+When deployed, Next.js API routes (files inside `app/api/`) become serverless functions on Vercel's infrastructure. These are small, isolated programs that run on-demand on Vercel's servers. The `/api/hint` route is the critical one — it acts as a secure proxy between the browser and HuggingFace, keeping the API token hidden. The browser calls `https://personal-coding-tutor.vercel.app/api/hint`, Vercel's serverless function executes, calls HuggingFace with the secret token, and returns the result. The user never sees the HuggingFace URL or token.
+
+**HuggingFace Inference Endpoint (GPU)**
+The fine-tuned PACT model runs on a dedicated Nvidia T4 GPU instance. It accepts text prompts and returns generated text. The endpoint is set to private (requires an authentication token) and uses scale-to-zero — after 15 minutes of inactivity, the container shuts down to save costs and cold-starts on the next request.
+
+The request flow for a hint:
 
 ```
-app/
-├── layout.tsx          # Root layout (wraps all pages)
-├── page.tsx            # Homepage route (/)
-├── globals.css         # Global styles
-├── auth/
-│   └── callback/
-│       └── route.ts    # OAuth callback handler (API route)
-├── dashboard/
-│   └── page.tsx        # Protected workspace (/dashboard)
-└── login/
-    └── page.tsx        # Login page (/login)
+Browser                    Vercel Serverless           HuggingFace Endpoint
+  │                            │                            │
+  │  POST /api/hint            │                            │
+  │  {problem, code, hints}    │                            │
+  │ ──────────────────────────>│                            │
+  │                            │  Verify auth (Supabase)    │
+  │                            │  Build ChatML prompt       │
+  │                            │                            │
+  │                            │  POST / (with HF_TOKEN)    │
+  │                            │  {inputs: prompt}          │
+  │                            │ ──────────────────────────>│
+  │                            │                            │  Model inference
+  │                            │   [{generated_text: "..."}]│
+  │                            │ <──────────────────────────│
+  │                            │                            │
+  │  {hint: "..."}             │  Strip ChatML tokens       │
+  │ <──────────────────────────│  Return hint               │
+  │                            │                            │
+  │  Display hint card         │                            │
 ```
-
-#### Key Routes:
-- **`/`** ([page.tsx](app/page.tsx)): Landing page (currently default Next.js template)
-- **`/login`** ([login/page.tsx](app/login/page.tsx)): Authentication UI with Supabase Auth
-- **`/dashboard`** ([dashboard/page.tsx](app/dashboard/page.tsx)): Main coding workspace (protected route)
-- **`/auth/callback`** ([auth/callback/route.ts](app/auth/callback/route.ts)): Handles OAuth redirect and session exchange
-
-### Client vs. Server Components
-
-**Server Components (Default):**
-- [layout.tsx](app/layout.tsx): Renders on server, loads Pyodide script
-- Authentication checks in middleware
-
-**Client Components (`'use client'`):**
-- [dashboard/page.tsx](app/dashboard/page.tsx): Uses React hooks (useState, custom hooks)
-- [login/page.tsx](app/login/page.tsx): Interactive authentication UI
-- [CodeEditor.tsx](components/CodeEditor.tsx): Monaco Editor requires browser APIs
-- [usePyodide.ts](hooks/usePyodide.ts): Manages browser-based Python runtime
-
-**Why This Split?**
-- Server components reduce bundle size and enable fast initial renders
-- Client components handle interactivity, state, and browser-specific APIs
-- Authentication can be checked server-side before sending HTML to client
 
 ---
 
-## Authentication & Database
+## 4. Machine Learning Pipeline
 
-### Supabase: The Backend-as-a-Service Choice
+The ML pipeline is located in the `scripts/` directory and operates independently of the web application. It was run offline to produce the model now deployed on HuggingFace.
 
-**Why Supabase?**
-Supabase was chosen over custom backend solutions for several reasons:
+### 4.1 Dataset Generation (`scripts/dataset/`)
 
-1. **Authentication Out-of-the-Box**
-   - Pre-built email/password authentication
-   - OAuth providers (Google, GitHub, etc.) with minimal config
-   - JWT-based session management
-   - Row-level security (RLS) for database queries
+High-quality Socratic tutoring data does not exist at scale, so a synthetic dataset was generated:
 
-2. **PostgreSQL Database**
-   - Scalable relational database
-   - Real-time subscriptions (future feature: collaborative coding)
-   - Built-in user tables and auth schema
+1. **Source Problems**: LeetCode-style coding problems provided the problem descriptions and correct solutions.
+2. **Synthetic Errors**: Claude Sonnet 4.5 (Anthropic) generated realistic student errors for each problem — logic bugs, off-by-one errors, wrong data structure choices, syntax mistakes.
+3. **Socratic Hints**: For each buggy code sample, Claude generated a pedagogical hint that guides the student toward identifying the issue without revealing the fix or providing code.
+4. **Validation**: GPT-5.2 acted as an independent validator, checking that (a) the buggy code actually fails, (b) the hint is genuinely helpful, and (c) the hint does not leak the solution.
+5. **Rejection Sampling**: Examples failing validation were discarded. The final dataset contains 227 validated examples in ChatML JSONL format, achieving a 79.1% validation pass rate.
 
-3. **No Backend Maintenance**
-   - No need to build custom auth endpoints
-   - Automatic session refresh and expiration handling
-   - HTTPS, security patches, and infrastructure managed by Supabase
+Each training example follows this structure:
 
-4. **Developer Experience**
-   - Simple JavaScript SDK (`@supabase/supabase-js`)
-   - TypeScript support
-   - Works seamlessly with Next.js SSR and middleware
-
-### Supabase Integration Architecture
-
-The project uses **three Supabase client patterns** based on execution context:
-
-#### 1. Browser Client ([utils/supabase/client.ts](utils/supabase/client.ts))
-```typescript
-import { createBrowserClient } from '@supabase/ssr'
-
-export function createClient() {
-    return createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
+```json
+{
+  "messages": [
+    {"role": "system", "content": "You are PACT, a Socratic Python coding tutor. Help students learn through guided questions and hints, not direct answers."},
+    {"role": "user", "content": "Problem: [description]\n\nMy code:\n```python\n[buggy code]\n```\n\n[description of issue]\n\nCan you give me a hint?"},
+    {"role": "assistant", "content": "[Socratic hint — questions and guidance, no code]"}
+  ]
 }
 ```
 
-**Used in:** Client Components (login page, dashboard logout)
+### 4.2 Model Training (`scripts/training/`)
 
-**How it works:**
-- Reads/writes cookies directly in the browser
-- Uses public anonymous key (safe to expose)
-- Handles auth state changes with `onAuthStateChange()`
+- **Base Model**: `Qwen/Qwen2.5-7B-Instruct` — chosen for strong coding reasoning and efficient size
+- **Technique**: QLoRA (Quantized Low-Rank Adaptation) — loads the base model in 4-bit precision and trains small adapter weights, reducing VRAM requirements to fit on an RTX 4090
+- **Training Infrastructure**: RunPod with RTX 4090 GPU
+- **Libraries**: torch 2.4.0, transformers 4.44.0, trl 0.10.1, peft, bitsandbytes
+- **Training Progress**: Loss decreased from ~1.1 to ~0.2 over the training run
+- **Post-Training**: LoRA adapters merged into base model, then quantised using AWQ (Activation-aware Weight Quantisation) for faster inference. The final model is uploaded to HuggingFace Hub as `AndreiSobo/pact-qwen-tutor-awq`.
 
-**Example Usage:**
-```tsx
-// In login/page.tsx
-const supabase = createClient()
-const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-    if (session) {
-        router.push('/') // Redirect on login
-    }
-})
-```
+### 4.3 Evaluation (`scripts/evaluation/`)
 
-#### 2. Server Client ([utils/supabase/server.ts](utils/supabase/server.ts))
-```typescript
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+An LLM-as-judge framework evaluates the model's responses using five metrics:
 
-export async function createClient() {
-    const cookieStore = await cookies()
-    
-    return createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookies: {
-                getAll() { return cookieStore.getAll() },
-                setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) =>
-                        cookieStore.set(name, value, options)
-                    )
-                }
-            }
-        }
-    )
-}
-```
+| Metric | Type | What It Measures |
+|--------|------|-----------------|
+| Code Leakage Rate | Binary (%) | Does the response contain executable code that solves the problem? |
+| Direct Answer Rate | Binary (%) | Does the response explicitly state the fix? |
+| Socratic Quality | Scale (1-5) | How well does it guide through questions? |
+| Helpfulness | Scale (1-5) | Would this actually help a student? |
+| Factual Correctness | Binary (%) | Is the technical content accurate? |
 
-**Used in:** Server Components, API Routes, Server Actions
+Results comparing the original and AWQ-quantised models:
 
-**How it works:**
-- Accesses Next.js cookies() API (server-side only)
-- Can read user session during SSR
-- Used in [auth/callback/route.ts](app/auth/callback/route.ts) to exchange OAuth code for session
+| Model | Code Leakage | Direct Answer | Socratic Quality | Helpfulness | Factual Correctness |
+|-------|-------------|---------------|------------------|-------------|-------------------|
+| Original (fp16) | 0.0% | 0.0% | 4.478 | 2.521 | 82.6% |
+| Quantised (AWQ) | 0.0% | 0.0% | 4.347 | 2.739 | 60.9% |
 
-**Example Usage:**
-```typescript
-// In auth/callback/route.ts
-const supabase = await createClient()
-const { error } = await supabase.auth.exchangeCodeForSession(code)
-```
-
-#### 3. Middleware Client ([utils/supabase/middleware.ts](utils/supabase/middleware.ts))
-```typescript
-export async function updateSession(request: NextRequest) {
-    let response = NextResponse.next({ request: { headers: request.headers } })
-
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookies: {
-                getAll() { return request.cookies.getAll() },
-                setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) => {
-                        request.cookies.set(name, value)
-                        response.cookies.set(name, value, options)
-                    })
-                }
-            }
-        }
-    )
-
-    await supabase.auth.getUser() // Refreshes session if expired
-    return response
-}
-```
-
-**Used in:** [middleware.ts](middleware.ts)
-
-**How it works:**
-- Runs on **every request** before it reaches pages
-- Reads session cookies from incoming request
-- Calls `getUser()` to refresh expired sessions
-- Sets updated cookies in response
-- Ensures user session stays alive across navigation
-
-### Authentication Flow
-
-#### Login Flow:
-1. User visits `/login`
-2. [login/page.tsx](app/login/page.tsx) renders Supabase `<Auth>` component
-3. User submits email/password
-4. Supabase API creates session and sends magic link or OAuth redirect
-5. User clicks link → redirected to `/auth/callback?code=XXX`
-6. [auth/callback/route.ts](app/auth/callback/route.ts) exchanges code for session
-7. Session cookies are set
-8. User redirected to `/` (or `/dashboard`)
-
-#### Session Validation:
-1. User navigates to any route
-2. [middleware.ts](middleware.ts) intercepts request
-3. [updateSession()](utils/supabase/middleware.ts) refreshes session if needed
-4. Updated cookies sent back to browser
-5. Page renders with valid session
-
-#### Logout Flow:
-1. User clicks "Sign Out" button in dashboard
-2. `supabase.auth.signOut()` called (client-side)
-3. Session cookies cleared
-4. User redirected to `/login`
+Both models achieve zero code leakage and zero direct answers, confirming the Socratic fine-tuning is effective. The quantised model trades some factual correctness for faster inference, which is acceptable for the tutoring use case.
 
 ---
 
-## Component Deep Dive
+## 5. Database Design
 
-### 1. CodeEditor Component ([components/CodeEditor.tsx](components/CodeEditor.tsx))
+### Supabase Project
 
-**Purpose:** Provides a Monaco Editor instance for writing Python code
+The database is a managed PostgreSQL instance hosted by Supabase.
 
-**Key Implementation Details:**
+### Tables
 
-```tsx
-import Editor, { loader } from '@monaco-editor/react'
+#### `content_problems`
+Stores all 2,641 coding problems. Read-only for authenticated users (no INSERT/UPDATE/DELETE policies).
 
-loader.config({
-    paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.46.0/min/vs' }
-})
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | UUID (PK) | Auto-generated. Kept over LeetCode question_id for Supabase FK compatibility |
+| `slug` | text (UNIQUE) | URL identifier, e.g. `two-sum`. Used for routing and as upsert conflict target |
+| `question_id` | integer (indexed) | LeetCode problem number. Display ordering only |
+| `difficulty` | text | CHECK constraint: `Easy`, `Medium`, `Hard` |
+| `tags` | jsonb | Array of strings, e.g. `["Array", "Hash Table"]`. GIN-indexed for `@>` queries |
+| `description` | text | Problem statement shown to users |
+| `starter_code` | text | Pre-filled in the Monaco editor |
+| `solution_code` | text | Reference solution. Never sent on initial page load |
+| `entry_point` | text | e.g. `Solution().twoSum` — used by the test harness to call the user's function |
+| `input_output` | jsonb | Array of `{input: string, output: string}` pairs for test validation |
+| `test_code` | text | Full Python assertion code from the dataset. Kept as a server-side fallback |
+
+#### `user_progress`
+One row per solved problem per user.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `id` | UUID (PK) | Auto-generated |
+| `user_id` | UUID (FK → auth.users) | Enforced via RLS |
+| `problem_id` | UUID (FK → content_problems) | |
+| `hints_used` | integer | Default 0. How many hints before solving |
+| `solved_at` | timestamptz | Default `now()` |
+
+**Constraint**: UNIQUE(user_id, problem_id) — prevents duplicate submissions.
+
+### RPC Function
+
+`get_random_unsolved_problem` is a PostgreSQL function called via Supabase RPC. It accepts a difficulty and optional tag, filters out problems the current user has already solved (via a NOT IN subquery on `user_progress`), and returns one random result. Uses SECURITY DEFINER to access `user_progress` via `auth.uid()`.
+
+### Row Level Security
+
+| Table | Operation | Rule |
+|-------|-----------|------|
+| `content_problems` | SELECT | Any authenticated user |
+| `content_problems` | INSERT/UPDATE/DELETE | None (service_role only) |
+| `user_progress` | SELECT | `auth.uid() = user_id` |
+| `user_progress` | INSERT | `auth.uid() = user_id` |
+| `user_progress` | UPDATE/DELETE | None |
+
+### Indexes
+
+```sql
+CREATE INDEX idx_problems_difficulty ON content_problems(difficulty);
+CREATE INDEX idx_problems_question_id ON content_problems(question_id);
+CREATE INDEX idx_problems_tags ON content_problems USING GIN(tags);
+CREATE UNIQUE INDEX idx_problems_slug ON content_problems(slug);
 ```
-
-**Why CDN Configuration?**
-- Monaco Editor uses Web Workers internally
-- Next.js tries to bundle worker files → causes errors
-- Using CDN bypasses Next.js bundling for worker scripts
-- Ensures editor loads correctly in production
-
-**Props:**
-- `initialCode`: Default Python code shown on load
-- `onChange`: Callback fired when user types (updates parent state)
-
-**Monaco Options:**
-```tsx
-options={{
-    minimap: { enabled: false },        // Disables code minimap
-    fontSize: 14,                        // Readable text size
-    scrollBeyondLastLine: false,         // No empty space at bottom
-    automaticLayout: true,               // Auto-resize on container change
-    padding: { top: 16 }                 // Top padding for aesthetics
-}}
-```
-
-**Tailwind Styling:**
-- `h-[60vh]`: 60% viewport height for vertical space
-- `border border-gray-300 rounded-lg`: Clean bordered container
-- `shadow-sm`: Subtle shadow for depth
-
-### 2. Console Component ([components/Console.tsx](components/Console.tsx))
-
-**Purpose:** Displays Python execution output in terminal style
-
-**Props:**
-- `output: string[]`: Array of output lines from Python execution
-- `isLoading?: boolean`: Shows loading state while Pyodide initializes
-
-**Styling Choices:**
-```tsx
-className="bg-black text-green-400 font-mono"
-```
-- **Black background**: Classic terminal aesthetic
-- **Green text**: Retro terminal look
-- **Monospace font**: Aligns code output properly
-
-**Loading State:**
-```tsx
-{isLoading ? (
-    <div className="text-yellow-500 animate-pulse">Initializing Python Engine...</div>
-) : ...}
-```
-- Shows yellow pulsing text while Pyodide loads (~30-50 MB download)
-
-**Output Rendering:**
-```tsx
-{output.map((line, i) => (
-    <div key={i} className="whitespace-pre-wrap">{line}</div>
-))}
-```
-- `whitespace-pre-wrap`: Preserves spaces/tabs from Python print statements
-- Maps each line separately for proper formatting
-
-### 3. Dashboard Page ([app/dashboard/page.tsx](app/dashboard/page.tsx))
-
-**Purpose:** Main coding workspace where users write and run Python
-
-**State Management:**
-```tsx
-const [code, setCode] = useState("print('Hello from PACT!')\n...")
-const { runPython, output, isLoading, isRunning } = usePyodide()
-```
-
-**Component Structure:**
-```
-Header (logout button)
-└── Main Grid
-    ├── Left Column: CodeEditor + Run Button
-    └── Right Column: Console
-```
-
-**Run Button Logic:**
-```tsx
-<button
-    onClick={() => runPython(code)}
-    disabled={isLoading || isRunning}
-    className={isLoading || isRunning ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}
->
-    {isRunning ? 'Running...' : 'Run Code ▶'}
-</button>
-```
-- Disables while Pyodide is loading or code is running
-- Shows visual feedback with text and color changes
-
-**Grid Layout:**
-```tsx
-<main className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-```
-- **Mobile (< 1024px)**: Single column (editor above console)
-- **Desktop (≥ 1024px)**: Two columns side-by-side
-- `gap-6`: 1.5rem spacing between columns
-
-### 4. Login Page ([app/login/page.tsx](app/login/page.tsx))
-
-**Purpose:** Handles user authentication with Supabase Auth UI
-
-**Hydration Fix:**
-```tsx
-const [isMounted, setIsMounted] = useState(false)
-useEffect(() => { setIsMounted(true) }, [])
-if (!isMounted) return null
-```
-- Prevents React hydration mismatch
-- Auth component uses browser APIs not available during SSR
-- Waits for client-side mount before rendering
-
-**Auth State Listener:**
-```tsx
-useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-        if (session) router.push('/')
-    })
-    return () => subscription.unsubscribe()
-}, [])
-```
-- Listens for login events
-- Automatically redirects to home when user logs in
-- Cleans up subscription on unmount
-
-**Supabase Auth Component:**
-```tsx
-<Auth
-    supabaseClient={supabase}
-    appearance={{ theme: ThemeSupa }}
-    theme="light"
-    providers={[]}
-    redirectTo={`${window.location.origin}/auth/callback`}
-/>
-```
-- Pre-built email/password form
-- `providers={[]}`: Disables OAuth (can add `['google', 'github']` later)
-- Redirects to callback route after authentication
 
 ---
 
-## Middleware & Request Handling
+## 6. Data Seeding Pipeline
 
-### Next.js Middleware ([middleware.ts](middleware.ts))
+**Script**: `scripts/database/seed_problems.py`
 
-**Purpose:** Intercepts all requests to refresh user sessions automatically
+Loads the train split of `newfacade/LeetCodeDataset` (2,641 problems) from HuggingFace and batch-upserts them into Supabase.
 
-```typescript
-export async function middleware(request: NextRequest) {
-    return await updateSession(request)
-}
-
-export const config = {
-    matcher: [
-        '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-    ],
-}
+**Running the seeder**:
+```bash
+pip install datasets supabase
+export SUPABASE_URL="https://lrmzvbyyqdlgxziapmwc.supabase.co"
+export SUPABASE_SERVICE_ROLE_KEY="the-service-role-key"
+python scripts/database/seed_problems.py
 ```
 
-**How Middleware Works:**
-1. **Runs on Edge Runtime**: Near-instant execution
-2. **Executes Before Pages**: Can redirect or modify requests
-3. **Path Matching**: Only runs on dynamic routes (excludes static assets)
-4. **Cookie Management**: Can read and set cookies in request/response
+**Key design decisions**:
+- Batch size of 100 rows per upsert (100x fewer API calls than row-by-row)
+- UPSERT on slug makes the script idempotent — safe to re-run
+- Uses service_role key (not anon key) to bypass RLS for admin operations
+- The `prompt` field from the dataset is not stored — only 4 distinct values exist, so the most comprehensive variant is hardcoded in the frontend
 
-**Matcher Explanation:**
-- `(?!_next/static|_next/image|favicon.ico)`: Excludes Next.js internal files
-- `(?!.*\\.(?:svg|png|jpg|...))`: Excludes image files
-- Runs on: `/`, `/login`, `/dashboard`, `/api/*`, etc.
-
-**Why This Is Critical:**
-- Supabase sessions expire after 1 hour by default
-- Middleware calls `supabase.auth.getUser()` → triggers refresh
-- User stays logged in across page navigation
-- No manual token refresh needed in components
-
-**Without Middleware:**
-- User would be logged out after 1 hour
-- Would need manual refresh logic in every page
-- Worse user experience
+**Result**: 638 Easy, 1,397 Medium, 606 Hard problems across 20+ topic tags.
 
 ---
 
-## Styling System
+## 7. Authentication System
 
-### Tailwind CSS Configuration
+### How It Works
 
-#### Why Tailwind?
-- **Utility-First**: No need to write custom CSS classes
-- **Responsive Design**: Built-in breakpoints (`sm:`, `md:`, `lg:`, `xl:`)
-- **Consistency**: Enforced design system (spacing, colors, typography)
-- **Performance**: Purges unused styles in production
-- **Developer Velocity**: Rapid prototyping without context switching
+Supabase handles authentication using JWTs stored in HTTP cookies. The system uses three Supabase client patterns depending on where the code runs:
 
-#### Configuration ([tailwind.config.ts](tailwind.config.ts))
-```typescript
-content: [
-    "./app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./components/**/*.{js,ts,jsx,tsx,mdx}",
-    "./utils/**/*.{js,ts,jsx,tsx,mdx}",
-]
-```
-- Tells Tailwind to scan these directories for class names
-- Only includes CSS for classes actually used
-- Reduces bundle size significantly
+**Browser Client** (`utils/supabase/client.ts`): Used in `'use client'` components. Reads and writes cookies directly in the browser. Handles login, logout, and client-side data queries.
 
-#### Global Styles ([app/globals.css](app/globals.css))
-```css
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+**Server Client** (`utils/supabase/server.ts`): Used in Server Components and API routes. Accesses cookies via Next.js `cookies()` API. This is what the `/api/hint` route uses to verify the user is authenticated.
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+**Middleware Client** (`utils/supabase/middleware.ts`): Runs on every incoming request before any page renders. Its sole job is to call `supabase.auth.getUser()`, which refreshes the session if the JWT is close to expiring. Without this, users would be silently logged out after Supabase's default 1-hour token lifetime.
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-```
-- Includes Tailwind's layers (base, components, utilities)
-- Defines CSS variables for theming
-- Supports dark mode via system preferences
+### Login Flow
 
-### Common Tailwind Patterns Used
+1. User visits `/login`, which renders the Supabase Auth UI component
+2. User enters email and password
+3. Supabase creates a session and redirects to `/auth/callback?code=XXX`
+4. The callback route (`app/auth/callback/route.ts`) exchanges the code for a session
+5. Session cookies are set in the browser
+6. User is redirected to `/` (which redirects to `/dashboard`)
 
-#### Layout:
-```tsx
-className="min-h-screen flex flex-col"
-```
-- `min-h-screen`: Minimum 100vh height
-- `flex flex-col`: Vertical flexbox layout
+### Session Persistence
 
-#### Responsive Grid:
-```tsx
-className="grid grid-cols-1 lg:grid-cols-2 gap-6"
-```
-- Mobile: 1 column
-- Desktop (1024px+): 2 columns
-- Gap: 1.5rem spacing
+The middleware (`middleware.ts`) matches all dynamic routes via a regex pattern that excludes static assets. On every navigation, it refreshes the session token. This means the user stays logged in as long as they're actively using the app, without any manual token management in components.
 
-#### Button States:
-```tsx
-className="bg-green-600 hover:bg-green-700 shadow-md hover:shadow-lg transition-all"
-```
-- Base: Green background with medium shadow
-- Hover: Darker green with larger shadow
-- `transition-all`: Smooth animation
+### Logout
 
-#### Terminal Styling:
-```tsx
-className="bg-black text-green-400 font-mono overflow-y-auto"
-```
-- Black background, green text, monospace font
-- `overflow-y-auto`: Scrollable if content exceeds height
+The dashboard's "Sign Out" button calls `supabase.auth.signOut()`, which clears the session cookies. The user is then redirected to `/login`.
 
 ---
 
-## Python Execution Engine
+## 8. Frontend Architecture
 
-### Pyodide: Python in the Browser
+### Routing
 
-**What is Pyodide?**
-- CPython compiled to WebAssembly (WASM)
-- Runs Python entirely in browser (no server needed)
-- Includes NumPy, Pandas, Matplotlib, and 100+ packages
-- ~30-50 MB download (loads once, cached by browser)
+The project uses Next.js App Router, where the folder structure defines the routes:
 
-**Why Pyodide?**
-- **Security**: No server-side code execution risk
-- **Cost**: No backend infrastructure for running Python
-- **Latency**: Instant execution (no network round-trip)
-- **Offline**: Works without internet after initial load
-- **Scalability**: Runs on user's machine
+| Route | File | Type | Purpose |
+|-------|------|------|---------|
+| `/` | `app/page.tsx` | Server | Redirects to `/dashboard` |
+| `/login` | `app/login/page.tsx` | Client | Authentication UI |
+| `/dashboard` | `app/dashboard/page.tsx` | Client | Problem finder (difficulty + tag selection) |
+| `/problems/[slug]` | `app/problems/[slug]/page.tsx` | Client | Problem workspace (editor, tests, hints, submit) |
+| `/api/hint` | `app/api/hint/route.ts` | Server (API) | Proxies hint requests to HuggingFace |
+| `/api/hint/warm` | `app/api/hint/warm/route.ts` | Server (API) | Wakes the HF container |
+| `/auth/callback` | `app/auth/callback/route.ts` | Server (API) | OAuth session exchange |
 
-### Loading Pyodide ([app/layout.tsx](app/layout.tsx))
-```tsx
-<Script
-    src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"
-    strategy="beforeInteractive"
-/>
-```
-- `strategy="beforeInteractive"`: Loads before React hydration
-- Ensures `window.loadPyodide` is available when components mount
+### Client vs Server Components
 
-### usePyodide Hook ([hooks/usePyodide.ts](hooks/usePyodide.ts))
+Files marked with `'use client'` run in the browser and can use React hooks, browser APIs, and interactive features. Files without this directive are Server Components — they render on the server and send HTML to the client.
 
-**Purpose:** Manages Pyodide lifecycle and code execution
+The split in this project:
+- **Server**: `layout.tsx` (loads Pyodide script tag), `page.tsx` (redirect), `auth/callback/route.ts`, API routes
+- **Client**: `dashboard/page.tsx`, `problems/[slug]/page.tsx`, `login/page.tsx`, `CodeEditor.tsx`, `Console.tsx`, `usePyodide.ts`
 
-**Initialization:**
-```tsx
-useEffect(() => {
-    const initPyodide = async () => {
-        while (typeof window.loadPyodide === 'undefined') {
-            await new Promise((resolve) => setTimeout(resolve, 100))
-        }
-        const py = await window.loadPyodide({
-            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.25.0/full/"
-        })
-        setPyodide(py)
-        setIsLoading(false)
-    }
-    initPyodide()
-}, [])
-```
-- Polls for `loadPyodide` function (from CDN script)
-- Downloads Pyodide runtime (~30 MB)
-- Sets `isLoading` to false when ready
+The reason for this split is that the dashboard and problem pages use React state (useState, useCallback), browser APIs (Pyodide, Monaco), and interactive event handlers — none of which work in Server Components.
 
-**Code Execution:**
-```tsx
-const runPython = async (code: string) => {
-    if (!pyodide) return
-    setIsRunning(true)
-    setOutput([])
+### Dashboard Page (`app/dashboard/page.tsx`)
 
-    try {
-        pyodide.setStdout({
-            batched: (msg: string) => {
-                setOutput((prev) => [...prev, msg])
-            }
-        })
-        await pyodide.runPythonAsync(code)
-    } catch (error: any) {
-        setOutput((prev) => [...prev, `Error: ${error.message}`])
-    } finally {
-        setIsRunning(false)
-    }
-}
-```
+The entry point to the application after login. Presents three difficulty buttons (Easy/Medium/Hard, colour-coded green/yellow/red) and a dropdown of 16 curated topic tags. The "Find Problem" button calls the `get_random_unsolved_problem` RPC function and navigates to `/problems/[slug]`.
 
-**How It Works:**
-1. **Stdout Redirection**: Captures `print()` statements
-2. **Async Execution**: Uses `runPythonAsync()` for async code support
-3. **Error Handling**: Catches Python exceptions and displays them
-4. **State Updates**: Appends output lines to state array
+On mount, a fire-and-forget `fetch('/api/hint/warm')` pings the HuggingFace endpoint to wake the container, so it's ready by the time the user needs a hint.
 
-**Example Execution:**
+### Problem Workspace (`app/problems/[slug]/page.tsx`)
+
+Two-column layout: problem description + hints on the left, code editor + console on the right.
+
+**State management** (all via React hooks):
+- `problem`: fetched from Supabase on mount (excludes `solution_code`)
+- `code`: current editor content
+- `hints` / `hintsUsed`: array of received hints and count
+- `hintError`: error message from failed hint requests
+- `testSummary`: structured pass/fail results from the test runner
+- `isSubmitted`: prevents re-submission
+- `solutionCode` / `showSolution`: fetched on demand after 3 hints
+
+**Key interactions**:
+- "Run" → calls `runTests()` from the Pyodide hook
+- "Get Hint" → calls `fetch('/api/hint')` with retry logic for cold starts
+- "Show Answer" → unlocked after 3 hints, fetches `solution_code` from Supabase on demand
+- "Submit" → enabled only when all tests pass, upserts into `user_progress`
+
+### Components
+
+**CodeEditor** (`components/CodeEditor.tsx`): Wraps `@monaco-editor/react` with Python syntax highlighting. Monaco is loaded from CDN (`cdn.jsdelivr.net`) rather than bundled, because Monaco uses Web Workers internally and Next.js bundling breaks them.
+
+**Console** (`components/Console.tsx`): Renders an array of output strings in a terminal-style black background with green monospace text. Shows a yellow pulsing "Initialising Python Engine..." message while Pyodide loads.
+
+---
+
+## 9. Python Execution Engine
+
+### Pyodide
+
+Pyodide is CPython compiled to WebAssembly. It runs Python entirely in the browser — no server-side code execution. This means no infrastructure costs, no security risks from executing user code on a server, and instant execution with no network latency.
+
+Pyodide is loaded from CDN in `app/layout.tsx` with `strategy="beforeInteractive"`, ensuring the script is available before React components mount.
+
+### The `usePyodide` Hook (`hooks/usePyodide.ts`)
+
+Manages the Pyodide lifecycle and exposes two execution modes:
+
+**`runPython(code)`**: Free-form execution for experimentation. Captures `print()` output via stdout redirection.
+
+**`runTests(code, entryPoint, inputOutput)`**: Validates user code against structured test cases. This is the primary execution mode in the problem workspace.
+
+### Python Preamble
+
+Every execution is preceded by a preamble providing the runtime environment LeetCode problems expect. This was sourced from the `prompt` column in the dataset. Analysis revealed only 4 distinct variants across all 2,641 problems, all subsets of the same comprehensive preamble. Rather than storing this per-problem, the most comprehensive variant is hardcoded as a constant.
+
+The preamble includes:
+- All standard library imports (`typing`, `collections`, `itertools`, `heapq`, `bisect`, `math`, `functools`, `operator`)
+- `TreeNode` and `ListNode` class definitions
+- `tree_node()` and `list_node()` helper functions (convert Python lists to tree/linked list structures)
+- `is_same_tree()` and `is_same_list()` comparison utilities
+- Literal aliases: `null = None`, `true = True`, `false = False`
+
+### Test Harness
+
+The dataset stores test cases as Python expression strings:
+- Input: `"nums = [3,3], target = 6"`
+- Output: `"[0, 1]"`
+
+The harness uses `eval()` to execute these naturally:
 ```python
-print('Hello')
-for i in range(3):
-    print(i)
+eval(f"Solution().twoSum(nums = [3,3], target = 6)")
 ```
 
-Output array:
+A maximum of 10 test cases are run per execution (configurable via `MAX_TEST_CASES`) to keep the browser responsive. The total count is shown to the user.
+
+### The String Escaping Bug and Fix
+
+A critical bug was encountered during development. Test inputs containing quoted strings (e.g., `firstWord = "ij"`) broke when embedded inside triple-quoted Python strings for JSON parsing. The initial approach:
 ```javascript
-['Hello\n', '0\n', '1\n', '2\n']
+// BROKEN — quotes in test data break the triple-quote boundary
+const harness = `__test_cases = json.loads('''${testCasesJson}''')`
 ```
+
+The fix uses Pyodide's JavaScript-to-Python globals bridge:
+```javascript
+pyodide.globals.set('__pact_test_json', JSON.stringify(testSlice))
+```
+
+This transfers data as a native JavaScript string to a Python variable, completely bypassing string escaping. The Python side reads it with `json.loads(__pact_test_json)`.
 
 ---
 
-## Project Structure
+## 10. Hint API — The Backend
 
-### Directory Layout
+### Why a Server-Side Proxy?
+
+The HuggingFace Inference Endpoint is private — it requires an authentication token. If the browser called HuggingFace directly, the token would be visible in network requests and anyone could extract it. Instead, the browser calls a Next.js API route on the same domain, which makes the HuggingFace call server-side.
+
+### `/api/hint/route.ts`
+
+This is a Next.js API route that becomes a Vercel serverless function when deployed. It:
+
+1. **Verifies authentication**: Creates a server-side Supabase client, reads the session cookies from the incoming request, and calls `getUser()`. Returns 401 if the session is expired or missing.
+
+2. **Parses the request**: Expects `{ problem_description, user_code, previous_hints }` in the POST body.
+
+3. **Builds the ChatML prompt**: The model was fine-tuned on single-turn conversations (system + one user message + one assistant response). Previous hints are included as numbered context inside the user message, not as separate conversation turns, because the model was never trained on multi-turn dialogue. The prompt uses Qwen's ChatML tokens:
+   ```
+   <|im_start|>system
+   You are PACT, a Socratic Python coding tutor...<|im_end|>
+   <|im_start|>user
+   Problem: [description]
+
+   My code:
+   ```python
+   [code]
+   ```
+
+   [Previous hints if any]
+
+   Can you give me a hint?<|im_end|>
+   <|im_start|>assistant
+   ```
+
+4. **Calls HuggingFace**: POSTs to the endpoint root URL with `{"inputs": prompt, "parameters": {max_new_tokens: 300, temperature: 0.7, top_p: 0.9, return_full_text: false}}`. The `return_full_text: false` parameter ensures only the generated response is returned, not the entire prompt echoed back.
+
+5. **Processes the response**: The Default Engine returns `[{"generated_text": "..."}]`. The function extracts the text, strips any trailing `<|im_end|>` tokens, and returns `{ hint: "..." }`.
+
+6. **Error handling**: 503 → container cold-starting. 404/502 → endpoint issue. AbortError → 30-second timeout exceeded. All errors return structured JSON with descriptive messages.
+
+### `/api/hint/warm/route.ts`
+
+A GET endpoint that pings the HuggingFace `/health` path to wake the container. Called fire-and-forget from the dashboard on mount. Times out after 5 seconds (we don't need the result). The HuggingFace endpoint uses scale-to-zero (15 minutes idle → shutdown), so this preemptive wake-up ensures the model is ready by the time the user reaches a problem and requests a hint.
+
+### Client-Side Retry Logic
+
+The `handleRequestHint` function in the problem page retries up to 2 times for 503 (cold start) and 504 (timeout) errors, with increasing backoff (3 seconds, then 6 seconds). Non-retryable errors (400, 401, 502) are displayed immediately as a red error card below the hint buttons.
+
+---
+
+## 11. Deployment
+
+### Vercel
+
+The application is deployed to Vercel via GitHub integration. When code is pushed to the `main` branch, Vercel automatically builds and deploys. The production URL is `https://personal-coding-tutor.vercel.app`.
+
+Vercel splits the Next.js codebase into two categories:
+- **Static/client**: React pages, components, CSS, and client-side JavaScript are compiled into bundles and served from Vercel's CDN
+- **Serverless functions**: Files inside `app/api/` become isolated functions that run on Vercel's servers on demand
+
+Environment variables (`HF_ENDPOINT_URL`, `HF_TOKEN`) are configured in the Vercel dashboard under Settings → Environment Variables. These are only available to serverless functions and are never included in client-side bundles. Importantly, Vercel does not pick up new environment variables on existing deployments — a redeploy is required after adding or changing variables.
+
+The `.env.local` file (used for local development) is gitignored and never reaches Vercel.
+
+### HuggingFace Inference Endpoint
+
+- **Model**: `AndreiSobo/pact-qwen-tutor-awq`
+- **Instance**: AWS eu-west-1, Nvidia T4 (16 GB VRAM), $0.50/hour while running
+- **Scale-to-zero**: After 15 minutes of no activity, the container shuts down. Cold start takes approximately 2 minutes (downloading model weights + initialising).
+- **Authentication**: Private endpoint, requires HuggingFace access token in the `Authorization` header
+- **API format**: Default Engine — `POST /` with `{"inputs": "...", "parameters": {...}}`, returns `[{"generated_text": "..."}]`
+
+---
+
+## 12. Project Structure
 
 ```
 personal-coding-tutor/
-├── app/                      # Next.js App Router
-│   ├── layout.tsx            # Root layout (loads Pyodide)
-│   ├── page.tsx              # Homepage (landing)
-│   ├── globals.css           # Global styles + Tailwind
+├── app/                              # Next.js App Router
+│   ├── layout.tsx                    # Root layout — loads Pyodide script from CDN
+│   ├── page.tsx                      # / → redirects to /dashboard
+│   ├── globals.css                   # Tailwind CSS base + theme variables
+│   ├── api/
+│   │   └── hint/
+│   │       ├── route.ts              # POST /api/hint — proxies to HuggingFace (serverless function)
+│   │       └── warm/
+│   │           └── route.ts          # GET /api/hint/warm — wakes the HF container
 │   ├── auth/
 │   │   └── callback/
-│   │       └── route.ts      # OAuth callback handler
+│   │       └── route.ts              # OAuth code → session exchange
 │   ├── dashboard/
-│   │   └── page.tsx          # Main workspace (protected)
-│   └── login/
-│       └── page.tsx          # Login UI
+│   │   └── page.tsx                  # Problem finder (difficulty + tag → random problem)
+│   ├── login/
+│   │   └── page.tsx                  # Supabase Auth UI
+│   └── problems/
+│       └── [slug]/
+│           └── page.tsx              # Problem workspace (editor, tests, hints, submit)
 │
-├── components/               # Reusable React components
-│   ├── CodeEditor.tsx        # Monaco editor wrapper
-│   └── Console.tsx           # Terminal output display
+├── components/
+│   ├── CodeEditor.tsx                # Monaco Editor wrapper (CDN-loaded)
+│   └── Console.tsx                   # Terminal-style output display
 │
-├── hooks/                    # Custom React hooks
-│   └── usePyodide.ts         # Pyodide initialization & execution
+├── hooks/
+│   └── usePyodide.ts                 # Pyodide init, runPython, runTests, Python preamble
 │
-├── utils/                    # Helper functions
+├── utils/
+│   ├── formatTitle.ts                # "two-sum" → "Two Sum"
 │   └── supabase/
-│       ├── client.ts         # Browser Supabase client
-│       ├── middleware.ts     # Middleware Supabase client
-│       └── server.ts         # Server Supabase client
+│       ├── client.ts                 # Browser Supabase client
+│       ├── server.ts                 # Server/API route Supabase client
+│       └── middleware.ts             # Middleware session refresh client
+│
+├── scripts/
+│   ├── database/
+│   │   └── seed_problems.py          # HuggingFace dataset → Supabase seeding
+│   ├── dataset/                      # Synthetic dataset generation scripts
+│   ├── training/                     # QLoRA fine-tuning scripts
+│   ├── evaluation/                   # LLM-as-judge evaluation scripts
+│   ├── notebooks/                    # Local inference testing notebooks
+│   ├── data/                         # JSONL datasets and intermediate files
+│   ├── .env                          # API keys for ML pipeline (OpenAI, Anthropic, HF, WandB)
+│   └── README.md                     # ML pipeline documentation
 │
 ├── documentation/
-│   └── documentation.md      # This file
-├── scripts/
-│   └── data/           # json and jsonl files with datasets
-│   └── dataset/        # Scripts required to create, validate, analyse and upload the custom PACT dataset
-│   └── evaluation/     # Scripts to evaluate the two saved models: PACT and PACT quantized 
-│   └── notebooks/      # Notebooks used in various tasks, mainly to test things locally (model inference etc.)
-│   └── training/       # Scripts required to train the PACT models , then upload to Hugging Face
-│   └── .env            # API keys for OpenAI, Anthropic, Hugging Face and WandB used in ML pipeline
-│   └── README.md       # Specific documentation of the ML pipeline
+│   └── documentation.md              # This file
 │
-├── public/                   # Static assets
-│
-├── middleware.ts             # Route middleware (session refresh)
-├── next.config.ts            # Next.js configuration
-├── tailwind.config.ts        # Tailwind configuration
-├── tsconfig.json             # TypeScript configuration
-├── package.json              # Dependencies
-└── package-lock.json         # Locked dependency versions
+├── middleware.ts                      # Root middleware — refreshes Supabase sessions on every request
+├── next.config.ts                    # Next.js configuration
+├── tailwind.config.ts                # Tailwind CSS configuration
+├── tsconfig.json                     # TypeScript configuration
+├── package.json                      # Dependencies and scripts
+└── .env.local                        # Local environment variables (gitignored)
 ```
 
-### Key Files Explained
+---
 
-| File | Purpose |
-|------|---------|
-| [middleware.ts](middleware.ts) | Intercepts requests to refresh Supabase sessions |
-| [app/layout.tsx](app/layout.tsx) | Root layout, loads Pyodide script |
-| [app/dashboard/page.tsx](app/dashboard/page.tsx) | Main workspace with editor and console |
-| [components/CodeEditor.tsx](components/CodeEditor.tsx) | Monaco editor for Python code |
-| [components/Console.tsx](components/Console.tsx) | Terminal-style output display |
-| [hooks/usePyodide.ts](hooks/usePyodide.ts) | Manages Pyodide runtime and execution |
-| [utils/supabase/client.ts](utils/supabase/client.ts) | Browser-side Supabase client |
-| [utils/supabase/server.ts](utils/supabase/server.ts) | Server-side Supabase client |
-| [utils/supabase/middleware.ts](utils/supabase/middleware.ts) | Middleware session refresh logic |
+## 13. Environment Variables
+
+### Web Application (`.env.local`)
+
+| Variable | Scope | Purpose |
+|----------|-------|---------|
+| `NEXT_PUBLIC_SUPABASE_URL` | Client + Server | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Client + Server | Public anon key (safe to expose — security is enforced by RLS) |
+| `HF_ENDPOINT_URL` | Server only | HuggingFace Inference Endpoint URL |
+| `HF_TOKEN` | Server only | HuggingFace access token |
+
+Variables prefixed with `NEXT_PUBLIC_` are embedded in the client-side JavaScript bundle and visible to users. Variables without this prefix exist only in server-side code (API routes, Server Components) and are never sent to the browser.
+
+For production: these must be set in the Vercel dashboard (Settings → Environment Variables), not just in `.env.local`.
+
+### ML Pipeline (`scripts/.env`)
+
+| Variable | Purpose |
+|----------|---------|
+| `ANTHROPIC_API_KEY` | Claude API for dataset generation |
+| `OPENAI_API_KEY` | GPT-4o for dataset validation |
+| `HF_TOKEN` | Model upload to HuggingFace Hub |
+| `WANDB_API_KEY` | Training run tracking (Weights & Biases) |
+
+### Database Seeding
+
+| Variable | Purpose |
+|----------|---------|
+| `SUPABASE_URL` | Supabase project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Admin key that bypasses RLS (never in frontend code) |
 
 ---
 
-## Future Considerations
-
-### Potential Enhancements
-
-1. **AI Model Integration**
-   - Add API route to call custom fine-tuned model
-   - Display AI hints/suggestions in sidebar
-   - Track user progress and adapt difficulty
-
-2. **Code Persistence**
-   - Save user code to Supabase database
-   - Load previous sessions on login
-   - Version history with undo/redo
-
-
-
-### Scalability Notes
-
-**Current Limitations:**
-- Pyodide has ~10-20 MB memory limit
-- Cannot run long-running Python processes
-- No multi-file project support
-
-**When to Migrate to Backend Python:**
-- If users need GPU acceleration (ML models)
-- If code needs to persist longer than browser session
-- If security requires sandboxed execution
-- If packages exceed Pyodide's available libraries
-
----
-
-## Development Commands
+## 14. Development Commands
 
 ```bash
 # Install dependencies
@@ -808,50 +571,22 @@ npm run build
 # Start production server (requires build first)
 npm start
 
-# Run ESLint to check for code issues
-npm run lint
-
-# Type check with TypeScript (no emit)
+# Type check without emitting
 npx tsc --noEmit
+
+# Seed the database
+cd scripts && python database/seed_problems.py
 ```
-
-### Development Tips
-
-- **Hot Reload**: The dev server automatically reloads when you save files
-- **Type Checking**: VS Code provides real-time TypeScript errors
-- **Console Logs**: Check browser DevTools for client-side logs
-- **Server Logs**: Check terminal for server-side logs
-- **Clear Cache**: If Pyodide behaves oddly, clear browser cache
 
 ---
 
-## Environment Variables Required
+## 15. Known Limitations
 
-Created a `.env.local` file in the project root:
 
-```bash
-# Supabase Configuration
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-```
+**Pyodide memory**: Pyodide has a ~10-20 MB memory limit. Long-running or memory-intensive Python programs may fail.
 
-**How to get these values:**
+**No code persistence**: Refreshing the page loses the user's code. Local storage or database-backed drafts would solve this. Is considered as issues to address.
 
-1. Go to your [Supabase Dashboard](https://supabase.com/dashboard)
-2. Select your project (or create a new one)
-3. Navigate to **Settings** → **API**
-4. Copy the **Project URL** (for `NEXT_PUBLIC_SUPABASE_URL`)
-5. Copy the **anon/public key** (for `NEXT_PUBLIC_SUPABASE_ANON_KEY`)
+**Single file only**: The editor supports one Python file. Multi-file projects are not supported.
 
-**Important Notes:**
-- The `NEXT_PUBLIC_` prefix makes these variables accessible in the browser
----
-
-## Conclusion
-
-This project demonstrates a modern, production-ready Next.js application with:
-- **Authentication**: Supabase for secure user management
-- **Interactive IDE**: Monaco Editor + Pyodide for browser-based Python
-- **Responsive Design**: Tailwind CSS with mobile-first approach
-- **SSR & Middleware**: Next.js App Router for optimal performance
-- **Type Safety**: Full TypeScript coverage
+**Cold starts**: The HuggingFace endpoint takes ~2 minutes to cold-start. The warm-up ping on dashboard load mitigates this, but users who navigate directly to a problem URL may experience a delay on their first hint.
