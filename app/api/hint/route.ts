@@ -14,7 +14,7 @@ const SYSTEM_PROMPT =
  * Returns: { hint } or { error }
  */
 export async function POST(request: NextRequest) {
-    // ── 1. Verify the user is authenticated ──────────────────────
+    // Verify the user is authenticated 
     const supabase = await createClient()
     const {
         data: { user },
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // ── 2. Parse the request body ────────────────────────────────
+    // Parse the request body
     let body: {
         problem_description: string
         user_code: string
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
         )
     }
 
-    // ── 3. Build the user message (single-turn) ──────────────────
+    // Build the user message (single-turn) 
     // The model was fine-tuned on single-turn conversations only.
     // Previous hints are included as context within the user message.
 
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
         userMessage += `\n\nCan you give me a hint?`
     }
 
-    // ── 4. Construct the ChatML prompt manually ──────────────────
+    // Construct the ChatML prompt
     // Qwen 2.5 uses ChatML format: <|im_start|>role\ncontent<|im_end|>
     // The prompt ends with <|im_start|>assistant\n to trigger generation.
 
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
         `<|im_start|>assistant\n`,
     ].join('\n')
 
-    // ── 5. Call the HuggingFace Inference Endpoint ───────────────
+    // Call the HuggingFace Inference Endpoint
     try {
         const controller = new AbortController()
         const timeout = setTimeout(() => controller.abort(), 30000) // 30s timeout
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
 
         clearTimeout(timeout)
 
-        // ── 6. Handle response ───────────────────────────────────────
+        // Handle response
         if (response.status === 503) {
             return NextResponse.json(
                 { error: 'Model is warming up. Please try again in a few seconds.' },
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
             )
         }
 
-        // Clean up: remove any trailing ChatML tokens the model may generate
+        // remove any trailing ChatML tokens the model may generate
         hint = hint.replace(/<\|im_end\|>/g, '').trim()
 
         return NextResponse.json({ hint })
