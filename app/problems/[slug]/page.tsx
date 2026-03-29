@@ -41,11 +41,19 @@ export default function ProblemPage() {
   const [hintsUsed, setHintsUsed] = useState(0)
   const [isRequestingHint, setIsRequestingHint] = useState(false)
   const [hintError, setHintError] = useState<string | null>(null)
+  const [hintMessage, setHintMessage] = useState<string | null>(null)
+  // Tracks whether the user has run their code at least once
+  const [lastRunAttempted, setLastRunAttempted] = useState(false)
 
   // Show Answer state
   const [solutionCode, setSolutionCode] = useState<string | null>(null)
   const [showSolution, setShowSolution] = useState(false)
   const canShowAnswer = hintsUsed >= 3
+
+  // Clear the "all tests passed" message when the user re-runs code and it no longer passes
+  useEffect(() => {
+    if (!testSummary?.allPassed) setHintMessage(null)
+  }, [testSummary])
 
   // Fetch problem on mount
   useEffect(() => {
@@ -74,6 +82,7 @@ export default function ProblemPage() {
 
   const handleRun = useCallback(async () => {
     if (!problem) return
+    setLastRunAttempted(true)
     await runTests(code, problem.entry_point, problem.input_output)
   }, [code, problem, runTests])
 
@@ -119,8 +128,37 @@ export default function ProblemPage() {
 
   const handleRequestHint = useCallback(async () => {
     if (!problem || isRequestingHint) return
+
+    // Short-circuit: if all tests already pass, show a success message instead of calling the API
+    if (testSummary?.allPassed) {
+      setHintMessage('All tests passed — your code is correct! No hints needed.')
+      return
+    }
+
     setIsRequestingHint(true)
     setHintError(null)
+    setHintMessage(null)
+
+    // Build execution context to send alongside the code
+    const execution_attempted = lastRunAttempted || output.length > 0 || !!testSummary
+
+    const firstTestError = testSummary?.results?.find((r) => r.error)
+    const rawError =
+      firstTestError?.error ||
+      output.find((l) => l.startsWith('Error:') || l.includes('Error —'))?.replace(/^Error:\s*/, '') ||
+      ''
+
+    // Sanitize: truncate to 3000 chars and replace backticks to avoid ChatML injection
+    const sanitize = (s: string, limit = 3000) =>
+      String(s || '').slice(0, limit).replace(/`/g, "'")
+
+    const error_message = sanitize(rawError)
+    const console_tail = sanitize(output.slice(-20).join('\n'))
+    const execution_reason = !execution_attempted
+      ? 'never run'
+      : testSummary
+        ? 'ran tests'
+        : 'ran code'
 
     // Retry logic for cold starts (503) and timeouts (504)
     const MAX_RETRIES = 2
@@ -135,6 +173,10 @@ export default function ProblemPage() {
             problem_description: problem.description,
             user_code: code,
             previous_hints: hints,
+            error_message,
+            console_tail,
+            execution_attempted,
+            execution_reason,
           }),
         })
 
@@ -171,7 +213,7 @@ export default function ProblemPage() {
 
     setHintError(lastError)
     setIsRequestingHint(false)
-  }, [problem, code, hints, isRequestingHint])
+  }, [problem, code, hints, isRequestingHint, output, testSummary, lastRunAttempted])
 
   // Show answer
 
@@ -258,11 +300,10 @@ export default function ProblemPage() {
               <button
                 onClick={handleRequestHint}
                 disabled={isRequestingHint || isSubmitted}
-                className={`px-4 py-2 text-sm rounded-md font-medium transition-colors ${
-                  isRequestingHint || isSubmitted
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-                }`}
+                className={`px-4 py-2 text-sm rounded-md font-medium transition-colors ${isRequestingHint || isSubmitted
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                  }`}
               >
                 {isRequestingHint
                   ? 'PACT is thinking...'
@@ -272,16 +313,22 @@ export default function ProblemPage() {
               <button
                 onClick={handleShowAnswer}
                 disabled={!canShowAnswer || isSubmitted}
-                className={`px-4 py-2 text-sm rounded-md font-medium transition-colors ${
-                  canShowAnswer && !isSubmitted
-                    ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                }`}
+                className={`px-4 py-2 text-sm rounded-md font-medium transition-colors ${canShowAnswer && !isSubmitted
+                  ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  }`}
                 title={!canShowAnswer ? `Use ${3 - hintsUsed} more hint(s) to unlock` : undefined}
               >
                 {canShowAnswer ? 'Show Answer' : `Show Answer (${3 - hintsUsed} more hints needed)`}
               </button>
             </div>
+
+            {/* All-tests-passed success message */}
+            {hintMessage && (
+              <div className="bg-green-50 border border-green-200 rounded-md px-4 py-3 text-sm text-green-700">
+                {hintMessage}
+              </div>
+            )}
 
             {/* Hint error */}
             {hintError && (
@@ -331,11 +378,10 @@ export default function ProblemPage() {
               <button
                 onClick={handleRun}
                 disabled={pyodideLoading || isRunning}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium text-white transition-all ${
-                  pyodideLoading || isRunning
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-green-600 hover:bg-green-700'
-                }`}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium text-white transition-all ${pyodideLoading || isRunning
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-green-600 hover:bg-green-700'
+                  }`}
               >
                 {pyodideLoading ? 'Loading...' : isRunning ? 'Running...' : 'Run ▶'}
               </button>
@@ -343,11 +389,10 @@ export default function ProblemPage() {
               <button
                 onClick={handleSubmit}
                 disabled={!testSummary?.allPassed || isSubmitted || isSubmitting}
-                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
-                  testSummary?.allPassed && !isSubmitted
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                }`}
+                className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${testSummary?.allPassed && !isSubmitted
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  }`}
               >
                 {isSubmitting ? 'Submitting...' : isSubmitted ? 'Submitted ✓' : 'Submit'}
               </button>

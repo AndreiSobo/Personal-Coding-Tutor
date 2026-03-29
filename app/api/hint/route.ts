@@ -29,6 +29,10 @@ export async function POST(request: NextRequest) {
         problem_description: string
         user_code: string
         previous_hints: string[]
+        error_message?: string
+        console_tail?: string
+        execution_attempted?: boolean
+        execution_reason?: string
     }
 
     try {
@@ -37,7 +41,21 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
     }
 
-    const { problem_description, user_code, previous_hints = [] } = body
+    const {
+        problem_description,
+        user_code,
+        previous_hints = [],
+        error_message,
+        console_tail,
+        execution_attempted,
+        execution_reason,
+    } = body
+
+    // Sanitize runtime context: truncate to 3000 chars and strip backticks to avoid ChatML injection
+    const sanitize = (s: unknown, limit = 3000) =>
+        String(s || '').slice(0, limit).replace(/`/g, "'")
+    const safeError = sanitize(error_message)
+    const safeConsole = sanitize(console_tail)
 
     if (!problem_description || !user_code) {
         return NextResponse.json(
@@ -60,7 +78,16 @@ export async function POST(request: NextRequest) {
         userMessage +=
             `\n\nI have already received the following hints:\n${hintsContext}\n\nThese hints were not enough. Can you give me a different hint that approaches the problem from another angle?`
     } else {
-        userMessage += `\n\nCan you give me a hint?`
+        userMessage += `\n\nMy code is not passing the tests. Please analyze my code against the problem description, identify the exact logical or syntax error, and give me a specific, guiding Socratic hint that points me toward the flaw without revealing the direct solution.`
+    }
+
+    // Append execution context so the LLM can give a more targeted hint
+    if (execution_attempted === false) {
+        userMessage += `\n\nNote: The user's code was NOT executed yet. No runtime error is available. Please focus on static analysis: look for syntax issues, logic flaws, and encourage the user to run their code first.`
+    } else if (safeError) {
+        userMessage += `\n\nTerminal error output:\n\`\`\`\n${safeError}\n\`\`\`\nPlease use this error to give a more targeted hint.`
+    } else if (safeConsole) {
+        userMessage += `\n\nRecent console output:\n\`\`\`\n${safeConsole}\n\`\`\``
     }
 
     // Construct the ChatML prompt
@@ -68,12 +95,13 @@ export async function POST(request: NextRequest) {
     // The prompt ends with <|im_start|>assistant\n to trigger generation.
 
     const prompt = [
-        `<|im_start|>system\n${SYSTEM_PROMPT}<|im_end|>`,
-        `<|im_start|>user\n${userMessage}<|im_end|>`,
-        `<|im_start|>assistant\n`,
+        `<| im_start |> system\n${SYSTEM_PROMPT} <| im_end |>`,
+        `<| im_start |> user\n${userMessage} <| im_end |>`,
+        `<| im_start |> assistant\n`,
     ].join('\n')
 
     // Call the HuggingFace Inference Endpoint
+    // temperature parameter changed from 0.7 for more focused answers
     try {
         const controller = new AbortController()
         const timeout = setTimeout(() => controller.abort(), 30000) // 30s timeout
@@ -82,13 +110,13 @@ export async function POST(request: NextRequest) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${HF_TOKEN}`,
+                Authorization: `Bearer ${HF_TOKEN} `,
             },
             body: JSON.stringify({
                 inputs: prompt,
                 parameters: {
                     max_new_tokens: 300,
-                    temperature: 0.7,
+                    temperature: 0.3,
                     top_p: 0.9,
                     return_full_text: false,
                 },
@@ -108,7 +136,7 @@ export async function POST(request: NextRequest) {
 
         if (!response.ok) {
             const errorText = await response.text().catch(() => 'Unknown error')
-            console.error(`HF endpoint error (${response.status}):`, errorText)
+            console.error(`HF endpoint error(${response.status}): `, errorText)
             return NextResponse.json(
                 { error: 'Failed to generate hint. Please try again.' },
                 { status: 502 }

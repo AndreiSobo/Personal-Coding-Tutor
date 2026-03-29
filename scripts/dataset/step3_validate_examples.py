@@ -97,7 +97,7 @@ Guidelines for overall_quality:
 
 
 def validate_example(example: Dict, max_retries: int = 3) -> Dict:
-    """Validate a single training example using GPT-5."""
+    """Validate a single training example using GPT-5.2"""
     
     prompt = VALIDATION_PROMPT.format(
         problem_title=example['problem_title'],

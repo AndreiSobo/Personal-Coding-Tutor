@@ -8,13 +8,7 @@ const HF_TOKEN = process.env.HF_TOKEN!
  *
  * Sends a minimal inference request to the HuggingFace Inference Endpoint
  * to wake the container from scale-to-zero sleep.
- *
- * A GET to /health does NOT trigger scale-up — only actual inference
- * requests (POST to root) wake the container. This sends the smallest
- * possible prompt with max_new_tokens: 1 to minimise compute cost.
- *
- * Called fire-and-forget from the dashboard page on mount.
- * Returns quickly regardless of whether the endpoint is ready.
+ * Called on dashboard page mount.
  */
 export async function GET() {
     try {
