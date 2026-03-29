@@ -19,6 +19,7 @@ CRITICAL RULES:
 // Attempts inference against a given endpoint.
 // Returns the generated text string on success, or null on any failure.
 // Null triggers the fallback to the next backend.
+
 async function callInference(
     endpointUrl: string,
     token: string,
@@ -161,64 +162,20 @@ export async function POST(request: NextRequest) {
         return_full_text: false,
     }
 
-    // --- STEP 1: Try Azure VM first ---
-    console.log('Attempting inference via Azure VM...')
+
     const azureResult = await callInference(AZURE_ENDPOINT_URL, AZURE_TOKEN, prompt, parameters)
 
-    if (azureResult.text) {
-        // Azure succeeded — return immediately
-        const hint = azureResult.text.replace(/<\|im_end\|>/g, '').trim()
-        console.log('Hint served via: Azure VM')
-        return NextResponse.json({ hint })
-    }
+    console.log('Azure result status:', azureResult.status)
+    console.log('Azure result text:', azureResult.text)
 
-    // Azure failed — log why and fall back to HuggingFace
-    console.log(`Azure VM unavailable (status: ${azureResult.status}), falling back to HuggingFace...`)
-
-    // Trigger HuggingFace warm-up in the background so the container
-    // starts spinning up while we attempt the first HF request
-    fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/warm`, { method: 'POST' }).catch(() => {})
-
-    // --- STEP 2: Fall back to HuggingFace ---
-    const hfResult = await callInference(HF_ENDPOINT_URL, HF_TOKEN, prompt, parameters)
-
-    if (hfResult.text) {
-        const hint = hfResult.text.replace(/<\|im_end\|>/g, '').trim()
-        console.log('Hint served via: HuggingFace')
-        return NextResponse.json({ hint })
-    }
-
-    // --- STEP 3: Both backends failed — return appropriate error ---
-
-    // HuggingFace container is warming up
-    if (hfResult.status === 503) {
+    if (!azureResult.text) {
         return NextResponse.json(
-            { error: 'Model is warming up. Please try again in a few seconds.' },
-            { status: 503 }
-        )
-    }
-
-    // Either backend timed out
-    if (azureResult.status === 504 || hfResult.status === 504) {
-        return NextResponse.json(
-            { error: 'Request timed out. The model may be starting up — please try again.' },
-            { status: 504 }
-        )
-    }
-
-    // HuggingFace returned a non-ok, non-503 error
-    if (hfResult.status && hfResult.status >= 400) {
-        console.error(`HF endpoint error: ${hfResult.status}`)
-        return NextResponse.json(
-            { error: 'Failed to generate hint. Please try again.' },
+            { error: `Azure inference failed with status: ${azureResult.status}` },
             { status: 502 }
         )
     }
 
-    // Both backends completely unreachable
-    console.error('Both Azure VM and HuggingFace are unavailable.')
-    return NextResponse.json(
-        { error: 'Both inference backends are currently unavailable. Please try again shortly.' },
-        { status: 500 }
-    )
+    const hint = azureResult.text.replace(/<\|im_end\|>/g, '').trim()
+    return NextResponse.json({ hint })
+
 }
