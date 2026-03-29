@@ -1,6 +1,10 @@
+// /app/api/hint/route.ts
+
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 
+const AZURE_ENDPOINT_URL = process.env.AZURE_ENDPOINT_URL!
+const AZURE_TOKEN = process.env.AZURE_TOKEN!
 const HF_ENDPOINT_URL = process.env.HF_ENDPOINT_URL!
 const HF_TOKEN = process.env.HF_TOKEN!
 
@@ -12,6 +16,54 @@ CRITICAL RULES:
 3. Do NOT treat the class structure, the 'self' parameter, or the lack of object instantiation as a bug. 
 4. Ignore the class boilerplate entirely and focus ONLY on the algorithmic logic and internal syntax of the method itself.`
 
+// Attempts inference against a given endpoint.
+// Returns the generated text string on success, or null on any failure.
+// Null triggers the fallback to the next backend.
+async function callInference(
+    endpointUrl: string,
+    token: string,
+    prompt: string,
+    parameters: object
+): Promise<{ text: string | null; status: number | null }> {
+    try {
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 30000)
+
+        const response = await fetch(endpointUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+                inputs: prompt,
+                parameters,
+            }),
+            signal: controller.signal,
+        })
+
+        clearTimeout(timeout)
+
+        // Return the status code alongside null so the caller can
+        // distinguish a 503 warming-up response from a hard failure
+        if (!response.ok) {
+            return { text: null, status: response.status }
+        }
+
+        const data = await response.json()
+        const text = data?.[0]?.generated_text?.trim() || null
+        return { text, status: 200 }
+
+    } catch (err: any) {
+        if (err.name === 'AbortError') {
+            // Timeout — treat as 504
+            return { text: null, status: 504 }
+        }
+        // Network error, VM unreachable, etc.
+        return { text: null, status: null }
+    }
+}
+
 /**
  * POST /api/hint
  *
@@ -19,7 +71,7 @@ CRITICAL RULES:
  * Returns: { hint } or { error }
  */
 export async function POST(request: NextRequest) {
-    // Verify the user is authenticated 
+    // Verify the user is authenticated
     const supabase = await createClient()
     const {
         data: { user },
@@ -53,7 +105,6 @@ export async function POST(request: NextRequest) {
         error_message,
         console_tail,
         execution_attempted,
-        execution_reason,
     } = body
 
     // Sanitize runtime context: truncate to 3000 chars and strip backticks to avoid ChatML injection
@@ -69,10 +120,9 @@ export async function POST(request: NextRequest) {
         )
     }
 
-    // Build the user message (single-turn) 
+    // Build the user message (single-turn)
     // The model was fine-tuned on single-turn conversations only.
     // Previous hints are included as context within the user message.
-
     let userMessage =
         `Problem:\n${problem_description}\n\nMy code:\n\`\`\`python\n${user_code}\n\`\`\``
 
@@ -98,85 +148,77 @@ export async function POST(request: NextRequest) {
     // Construct the ChatML prompt
     // Qwen 2.5 uses ChatML format: <|im_start|>role\ncontent<|im_end|>
     // The prompt ends with <|im_start|>assistant\n to trigger generation.
-
     const prompt = [
         `<|im_start|>system\n${SYSTEM_PROMPT}<|im_end|>`,
         `<|im_start|>user\n${userMessage}<|im_end|>`,
         `<|im_start|>assistant\n`,
     ].join('\n')
 
-    // Call the HuggingFace Inference Endpoint
-    // temperature parameter changed from 0.7 for more focused answers
-    try {
-        const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 30000) // 30s timeout
+    const parameters = {
+        max_new_tokens: 300,
+        temperature: 0.3,
+        top_p: 0.9,
+        return_full_text: false,
+    }
 
-        const response = await fetch(HF_ENDPOINT_URL, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${HF_TOKEN} `,
-            },
-            body: JSON.stringify({
-                inputs: prompt,
-                parameters: {
-                    max_new_tokens: 300,
-                    temperature: 0.3,
-                    top_p: 0.9,
-                    return_full_text: false,
-                },
-            }),
-            signal: controller.signal,
-        })
+    // --- STEP 1: Try Azure VM first ---
+    console.log('Attempting inference via Azure VM...')
+    const azureResult = await callInference(AZURE_ENDPOINT_URL, AZURE_TOKEN, prompt, parameters)
 
-        clearTimeout(timeout)
-
-        // Handle response
-        if (response.status === 503) {
-            return NextResponse.json(
-                { error: 'Model is warming up. Please try again in a few seconds.' },
-                { status: 503 }
-            )
-        }
-
-        if (!response.ok) {
-            const errorText = await response.text().catch(() => 'Unknown error')
-            console.error(`HF endpoint error(${response.status}): `, errorText)
-            return NextResponse.json(
-                { error: 'Failed to generate hint. Please try again.' },
-                { status: 502 }
-            )
-        }
-
-        const data = await response.json()
-
-        // Default Engine returns: [{"generated_text": "..."}]
-        let hint = data?.[0]?.generated_text?.trim()
-
-        if (!hint) {
-            console.error('Unexpected HF response format:', JSON.stringify(data))
-            return NextResponse.json(
-                { error: 'Received empty response from model.' },
-                { status: 502 }
-            )
-        }
-
-        // remove any trailing ChatML tokens the model may generate
-        hint = hint.replace(/<\|im_end\|>/g, '').trim()
-
+    if (azureResult.text) {
+        // Azure succeeded — return immediately
+        const hint = azureResult.text.replace(/<\|im_end\|>/g, '').trim()
+        console.log('Hint served via: Azure VM')
         return NextResponse.json({ hint })
-    } catch (err: any) {
-        if (err.name === 'AbortError') {
-            return NextResponse.json(
-                { error: 'Request timed out. The model may be starting up — please try again.' },
-                { status: 504 }
-            )
-        }
+    }
 
-        console.error('Hint API error:', err)
+    // Azure failed — log why and fall back to HuggingFace
+    console.log(`Azure VM unavailable (status: ${azureResult.status}), falling back to HuggingFace...`)
+
+    // Trigger HuggingFace warm-up in the background so the container
+    // starts spinning up while we attempt the first HF request
+    fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/warm`, { method: 'POST' }).catch(() => {})
+
+    // --- STEP 2: Fall back to HuggingFace ---
+    const hfResult = await callInference(HF_ENDPOINT_URL, HF_TOKEN, prompt, parameters)
+
+    if (hfResult.text) {
+        const hint = hfResult.text.replace(/<\|im_end\|>/g, '').trim()
+        console.log('Hint served via: HuggingFace')
+        return NextResponse.json({ hint })
+    }
+
+    // --- STEP 3: Both backends failed — return appropriate error ---
+
+    // HuggingFace container is warming up
+    if (hfResult.status === 503) {
         return NextResponse.json(
-            { error: 'Something went wrong. Please try again.' },
-            { status: 500 }
+            { error: 'Model is warming up. Please try again in a few seconds.' },
+            { status: 503 }
         )
     }
+
+    // Either backend timed out
+    if (azureResult.status === 504 || hfResult.status === 504) {
+        return NextResponse.json(
+            { error: 'Request timed out. The model may be starting up — please try again.' },
+            { status: 504 }
+        )
+    }
+
+    // HuggingFace returned a non-ok, non-503 error
+    if (hfResult.status && hfResult.status >= 400) {
+        console.error(`HF endpoint error: ${hfResult.status}`)
+        return NextResponse.json(
+            { error: 'Failed to generate hint. Please try again.' },
+            { status: 502 }
+        )
+    }
+
+    // Both backends completely unreachable
+    console.error('Both Azure VM and HuggingFace are unavailable.')
+    return NextResponse.json(
+        { error: 'Both inference backends are currently unavailable. Please try again shortly.' },
+        { status: 500 }
+    )
 }
