@@ -28,7 +28,7 @@ async function callInference(
 ): Promise<{ text: string | null; status: number | null }> {
     try {
         const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 30000)
+        const timeout = setTimeout(() => controller.abort(), 120000)
 
         const response = await fetch(endpointUrl, {
             method: 'POST',
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
     ].join('\n')
 
     const parameters = {
-        max_new_tokens: 300,
+        max_new_tokens: 150,
         temperature: 0.3,
         top_p: 0.9,
         return_full_text: false,
