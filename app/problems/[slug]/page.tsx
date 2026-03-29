@@ -48,6 +48,7 @@ export default function ProblemPage() {
   // Show Answer state
   const [solutionCode, setSolutionCode] = useState<string | null>(null)
   const [showSolution, setShowSolution] = useState(false)
+  const [solutionError, setSolutionError] = useState<string | null>(null)
   const canShowAnswer = hintsUsed >= 3
 
   // Clear the "all tests passed" message when the user re-runs code and it no longer passes
@@ -219,6 +220,7 @@ export default function ProblemPage() {
 
   const handleShowAnswer = useCallback(async () => {
     if (!problem || !canShowAnswer) return
+    setSolutionError(null)
 
     if (!solutionCode) {
       const { data, error } = await supabase
@@ -229,6 +231,12 @@ export default function ProblemPage() {
 
       if (error || !data) {
         console.error('Failed to fetch solution:', error)
+        setSolutionError('Could not load the solution. Please try again.')
+        return
+      }
+
+      if (!data.solution_code) {
+        setSolutionError('No reference solution is available for this problem.')
         return
       }
 
@@ -358,6 +366,13 @@ export default function ProblemPage() {
                 <pre className="text-sm text-gray-800 font-mono whitespace-pre-wrap bg-white rounded p-3 border">
                   {solutionCode}
                 </pre>
+              </div>
+            )}
+
+            {/* Solution fetch error */}
+            {solutionError && (
+              <div className="bg-red-50 border border-red-200 rounded-md px-4 py-3 text-sm text-red-700">
+                {solutionError}
               </div>
             )}
           </div>
