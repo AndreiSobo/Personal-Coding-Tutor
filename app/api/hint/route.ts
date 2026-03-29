@@ -4,8 +4,13 @@ import { createClient } from '@/utils/supabase/server'
 const HF_ENDPOINT_URL = process.env.HF_ENDPOINT_URL!
 const HF_TOKEN = process.env.HF_TOKEN!
 
-const SYSTEM_PROMPT =
-    'You are PACT, a Socratic Python coding tutor. Help students learn through guided questions and hints, not direct answers.'
+const SYSTEM_PROMPT = `You are PACT, a Socratic Python coding tutor. Help students learn through guided questions and hints, not direct answers.
+
+CRITICAL RULES:
+1. The student is coding in a LeetCode-style environment. 
+2. All code MUST be wrapped in a 'class Solution:' and use 'self' in the method signature. 
+3. Do NOT treat the class structure, the 'self' parameter, or the lack of object instantiation as a bug. 
+4. Ignore the class boilerplate entirely and focus ONLY on the algorithmic logic and internal syntax of the method itself.`
 
 /**
  * POST /api/hint
@@ -95,9 +100,9 @@ export async function POST(request: NextRequest) {
     // The prompt ends with <|im_start|>assistant\n to trigger generation.
 
     const prompt = [
-        `<| im_start |> system\n${SYSTEM_PROMPT} <| im_end |>`,
-        `<| im_start |> user\n${userMessage} <| im_end |>`,
-        `<| im_start |> assistant\n`,
+        `<|im_start|>system\n${SYSTEM_PROMPT}<|im_end|>`,
+        `<|im_start|>user\n${userMessage}<|im_end|>`,
+        `<|im_start|>assistant\n`,
     ].join('\n')
 
     // Call the HuggingFace Inference Endpoint

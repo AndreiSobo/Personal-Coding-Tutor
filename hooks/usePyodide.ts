@@ -227,6 +227,7 @@ ${PYTHON_PREAMBLE}
 ${userCode}
 
 import json as __json
+import traceback as __traceback
 
 __test_cases = __json.loads(__pact_test_json)
 __entry_point = __pact_entry_point
@@ -244,10 +245,12 @@ for __i, __tc in enumerate(__test_cases):
             "actual": repr(__actual)
         }))
     except Exception as __e:
+        # Capture the full traceback, not just the error string
+        __error_trace = __traceback.format_exc()
         __results.append(__json.dumps({
             "index": __i,
             "passed": False,
-            "error": str(__e)
+            "error": __error_trace
         }))
 
 print("__PACT_TEST_RESULTS__")
@@ -329,7 +332,8 @@ print("__PACT_TEST_RESULTS_END__")
       setTestSummary(summary)
       return summary
     } catch (error: any) {
-      setOutput([`Error: ${error.message}`])
+      const errorMsg = error.message || String(error)
+      setOutput([`Error: ${errorMsg}`])
       setTestSummary(null)
       return null
     } finally {
