@@ -38,6 +38,7 @@ export default function ProblemPage() {
 
   // Hint state
   const [hints, setHints] = useState<string[]>([])
+  const [streamingHint, setStreamingHint] = useState<string>('') // NEW: Holds the active stream text
   const [hintsUsed, setHintsUsed] = useState(0)
   const [isRequestingHint, setIsRequestingHint] = useState(false)
   const [hintError, setHintError] = useState<string | null>(null)
@@ -80,7 +81,6 @@ export default function ProblemPage() {
   }, [slug])
 
   // Run tests
-
   const handleRun = useCallback(async () => {
     if (!problem) return
     setLastRunAttempted(true)
@@ -88,7 +88,6 @@ export default function ProblemPage() {
   }, [code, problem, runTests])
 
   // Submit
-
   const handleSubmit = useCallback(async () => {
     if (!problem || !testSummary?.allPassed || isSubmitted) return
     setIsSubmitting(true)
@@ -125,8 +124,6 @@ export default function ProblemPage() {
   }, [problem, testSummary, isSubmitted, hintsUsed, supabase, router])
 
   // Request Hint
-  // Calls /api/hint (server-side route) which forwards to HuggingFace.
-
   const handleRequestHint = useCallback(async () => {
     if (!problem || isRequestingHint) return
 
@@ -149,19 +146,11 @@ export default function ProblemPage() {
       output.find((l) => l.startsWith('Error:') || l.includes('Error —'))?.replace(/^Error:\s*/, '') ||
       ''
 
-    // Sanitize: truncate to 3000 chars and replace backticks to avoid ChatML injection
-    const sanitize = (s: string, limit = 3000) =>
-      String(s || '').slice(0, limit).replace(/`/g, "'")
-
+    const sanitize = (s: string, limit = 3000) => String(s || '').slice(0, limit).replace(/`/g, "'")
     const error_message = sanitize(rawError)
     const console_tail = sanitize(output.slice(-20).join('\n'))
-    const execution_reason = !execution_attempted
-      ? 'never run'
-      : testSummary
-        ? 'ran tests'
-        : 'ran code'
+    const execution_reason = !execution_attempted ? 'never run' : testSummary ? 'ran tests' : 'ran code'
 
-    // Retry logic for cold starts (503) and timeouts (504)
     const MAX_RETRIES = 2
     let lastError = ''
 
@@ -181,27 +170,65 @@ export default function ProblemPage() {
           }),
         })
 
-        const data = await response.json()
+        // Handle specific server errors before reading body
+        if (!response.ok) {
+          if (response.status === 503 || response.status === 504) {
+            lastError = 'Model is warming up...'
+            if (attempt < MAX_RETRIES) {
+              await new Promise((r) => setTimeout(r, 3000 * (attempt + 1)))
+              continue
+            }
+          } else {
+            try {
+              const errData = await response.json()
+              lastError = errData.error || 'Failed to get hint.'
+            } catch {
+              lastError = 'Failed to get hint.'
+            }
+          }
+          break // Break out of retry loop for standard errors
+        }
 
-        if (response.ok && data.hint) {
-          setHints((prev) => [...prev, data.hint])
-          setHintsUsed((prev) => prev + 1)
+        // --- SUCCESSFUL RESPONSE HANDLING ---
+        const contentType = response.headers.get('Content-Type') || ''
+
+        // PATH 1: JSON (Synchronous Hugging Face)
+        if (contentType.includes('application/json')) {
+          const data = await response.json()
+          if (data.hint) {
+            setHints((prev) => [...prev, data.hint])
+            setHintsUsed((prev) => prev + 1)
+            setIsRequestingHint(false)
+            return
+          }
+        }
+        // PATH 2: Stream (Fallback Azure CPU)
+        else {
+          if (!response.body) throw new Error('ReadableStream not supported')
+
+          setHintsUsed((prev) => prev + 1) // Increment upfront for the UI
+
+          const reader = response.body.getReader()
+          const decoder = new TextDecoder('utf-8')
+          let done = false
+          let streamedText = ''
+
+          while (!done) {
+            const { value, done: readerDone } = await reader.read()
+            done = readerDone
+            if (value) {
+              streamedText += decoder.decode(value, { stream: true })
+              setStreamingHint(streamedText)
+            }
+          }
+
+          // Stream finished
+          setHints((prev) => [...prev, streamedText.trim()])
+          setStreamingHint('')
           setIsRequestingHint(false)
           return
         }
 
-        // Retryable errors: cold start or timeout
-        if (response.status === 503 || response.status === 504) {
-          lastError = data.error || 'Model is warming up...'
-          if (attempt < MAX_RETRIES) {
-            await new Promise((r) => setTimeout(r, 3000 * (attempt + 1)))
-            continue
-          }
-        }
-
-        // Non-retryable error
-        lastError = data.error || 'Failed to get hint.'
-        break
       } catch (err) {
         lastError = 'Network error. Please check your connection.'
         if (attempt < MAX_RETRIES) {
@@ -217,7 +244,6 @@ export default function ProblemPage() {
   }, [problem, code, hints, isRequestingHint, output, testSummary, lastRunAttempted])
 
   // Show answer
-
   const handleShowAnswer = useCallback(async () => {
     if (!problem || !canShowAnswer) return
     setSolutionError(null)
@@ -247,7 +273,6 @@ export default function ProblemPage() {
   }, [problem, canShowAnswer, solutionCode, supabase])
 
   // Render
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -313,7 +338,7 @@ export default function ProblemPage() {
                   : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
                   }`}
               >
-                {isRequestingHint
+                {isRequestingHint && !streamingHint
                   ? 'PACT is thinking...'
                   : `Get Hint (${hintsUsed} used)`}
               </button>
@@ -345,7 +370,7 @@ export default function ProblemPage() {
               </div>
             )}
 
-            {/* Display hints */}
+            {/* Display static hints */}
             {hints.length > 0 && (
               <div className="space-y-2">
                 {hints.map((hint, i) => (
@@ -356,6 +381,14 @@ export default function ProblemPage() {
                     <span className="font-medium">Hint {i + 1}:</span> {hint}
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Display currently STREAMING hint */}
+            {streamingHint && (
+              <div className="bg-purple-50 border border-purple-200 rounded-md px-4 py-3 text-sm text-purple-800">
+                <span className="font-medium">Hint {hintsUsed}:</span> {streamingHint}
+                <span className="animate-pulse font-bold ml-1">_</span>
               </div>
             )}
 
