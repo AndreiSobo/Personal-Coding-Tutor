@@ -127,7 +127,6 @@ export default function ProblemPage() {
   const handleRequestHint = useCallback(async () => {
     if (!problem || isRequestingHint) return
 
-    // Short-circuit: if all tests already pass, show a success message instead of calling the API
     if (testSummary?.allPassed) {
       setHintMessage('All tests passed — your code is correct! No hints needed.')
       return
@@ -137,110 +136,103 @@ export default function ProblemPage() {
     setHintError(null)
     setHintMessage(null)
 
-    // Build execution context to send alongside the code
     const execution_attempted = lastRunAttempted || output.length > 0 || !!testSummary
-
     const firstTestError = testSummary?.results?.find((r) => r.error)
-    const rawError =
-      firstTestError?.error ||
-      output.find((l) => l.startsWith('Error:') || l.includes('Error —'))?.replace(/^Error:\s*/, '') ||
-      ''
-
+    const rawError = firstTestError?.error || output.find((l) => l.startsWith('Error:') || l.includes('Error —'))?.replace(/^Error:\s*/, '') || ''
     const sanitize = (s: string, limit = 3000) => String(s || '').slice(0, limit).replace(/`/g, "'")
     const error_message = sanitize(rawError)
     const console_tail = sanitize(output.slice(-20).join('\n'))
-    const execution_reason = !execution_attempted ? 'never run' : testSummary ? 'ran tests' : 'ran code'
 
-    const MAX_RETRIES = 2
-    let lastError = ''
+    try {
+      // 1. PRIMARY: Try Vercel Backend (Hugging Face GPU)
+      const hfResponse = await fetch('/api/hint', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          problem_description: problem.description,
+          user_code: code,
+          previous_hints: hints,
+          error_message,
+          console_tail,
+          execution_attempted,
+        }),
+      })
 
-    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-      try {
-        const response = await fetch('/api/hint', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            problem_description: problem.description,
-            user_code: code,
-            previous_hints: hints,
-            error_message,
-            console_tail,
-            execution_attempted,
-            execution_reason,
-          }),
-        })
-
-        // Handle specific server errors before reading body
-        if (!response.ok) {
-          if (response.status === 503 || response.status === 504) {
-            lastError = 'Model is warming up...'
-            if (attempt < MAX_RETRIES) {
-              await new Promise((r) => setTimeout(r, 3000 * (attempt + 1)))
-              continue
-            }
-          } else {
-            try {
-              const errData = await response.json()
-              lastError = errData.error || 'Failed to get hint.'
-            } catch {
-              lastError = 'Failed to get hint.'
-            }
-          }
-          break // Break out of retry loop for standard errors
-        }
-
-        // --- SUCCESSFUL RESPONSE HANDLING ---
-        const contentType = response.headers.get('Content-Type') || ''
-
-        // PATH 1: JSON (Synchronous Hugging Face)
-        if (contentType.includes('application/json')) {
-          const data = await response.json()
-          if (data.hint) {
-            setHints((prev) => [...prev, data.hint])
-            setHintsUsed((prev) => prev + 1)
-            setIsRequestingHint(false)
-            return
-          }
-        }
-        // PATH 2: Stream (Fallback Azure CPU)
-        else {
-          if (!response.body) throw new Error('ReadableStream not supported')
-
-          setHintsUsed((prev) => prev + 1) // Increment upfront for the UI
-
-          const reader = response.body.getReader()
-          const decoder = new TextDecoder('utf-8')
-          let done = false
-          let streamedText = ''
-
-          while (!done) {
-            const { value, done: readerDone } = await reader.read()
-            done = readerDone
-            if (value) {
-              streamedText += decoder.decode(value, { stream: true })
-              setStreamingHint(streamedText)
-            }
-          }
-
-          // Stream finished
-          setHints((prev) => [...prev, streamedText.trim()])
-          setStreamingHint('')
+      if (hfResponse.ok) {
+        const data = await hfResponse.json()
+        if (data.hint) {
+          setHints((prev) => [...prev, data.hint])
+          setHintsUsed((prev) => prev + 1)
           setIsRequestingHint(false)
           return
         }
+      }
 
-      } catch (err) {
-        lastError = 'Network error. Please check your connection.'
-        if (attempt < MAX_RETRIES) {
-          await new Promise((r) => setTimeout(r, 2000))
-          continue
+      // If HF fails, purposefully throw an error to trigger the Azure Fallback
+      throw new Error("Primary HF endpoint unavailable.")
+
+    } catch (err) {
+      console.warn("Primary endpoint failed. Falling back directly to Azure CPU...", err)
+
+      // 2. FALLBACK: Direct Browser-to-Azure Streaming
+      try {
+        const AZURE_URL = process.env.NEXT_PUBLIC_AZURE_ENDPOINT_URL!
+        const AZURE_TOKEN = process.env.NEXT_PUBLIC_AZURE_TOKEN!
+
+        // Rebuild the prompt for Azure
+        const SYSTEM_PROMPT = `You are PACT, a Socratic Python coding tutor. Help students learn through guided questions and hints, not direct answers.\n\nCRITICAL RULES:\n1. The student is coding in a LeetCode-style environment.\n2. All code MUST be wrapped in a 'class Solution:' and use 'self' in the method signature.\n3. Do NOT treat the class structure, the 'self' parameter, or the lack of object instantiation as a bug.\n4. Ignore the class boilerplate entirely and focus ONLY on the algorithmic logic and internal syntax of the method itself.`
+
+        let userMessage = `Problem:\n${problem.description}\n\nMy code:\n\`\`\`python\n${code}\n\`\`\``
+        if (hints.length > 0) {
+          const hintsContext = hints.map((h, i) => `${i + 1}. ${h}`).join('\n')
+          userMessage += `\n\nI have already received the following hints:\n${hintsContext}\n\nThese hints were not enough. Can you give me a different hint that approaches the problem from another angle?`
+        } else {
+          userMessage += `\n\nMy code is not passing the tests. Please analyze my code against the problem description, identify the exact logical or syntax error, and give me a specific, guiding Socratic hint that points me toward the flaw without revealing the direct solution.`
         }
-        break
+
+        const rawPrompt = `<|im_start|>system\n${SYSTEM_PROMPT}<|im_end|>\n<|im_start|>user\n${userMessage}<|im_end|>\n<|im_start|>assistant\n`
+
+        const azureResponse = await fetch(AZURE_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${AZURE_TOKEN}`
+          },
+          body: JSON.stringify({
+            inputs: rawPrompt,
+            parameters: { max_new_tokens: 200, temperature: 0.3, top_p: 0.9 }
+          })
+        })
+
+        if (!azureResponse.ok || !azureResponse.body) {
+          throw new Error('Fallback Azure endpoint unavailable.')
+        }
+
+        setHintsUsed((prev) => prev + 1)
+
+        const reader = azureResponse.body.getReader()
+        const decoder = new TextDecoder('utf-8')
+        let done = false
+        let streamedText = ''
+
+        while (!done) {
+          const { value, done: readerDone } = await reader.read()
+          done = readerDone
+          if (value) {
+            streamedText += decoder.decode(value, { stream: true })
+            setStreamingHint(streamedText)
+          }
+        }
+
+        setHints((prev) => [...prev, streamedText.trim()])
+        setStreamingHint('')
+        setIsRequestingHint(false)
+
+      } catch (azureErr) {
+        setHintError('Both AI engines are currently unavailable. Please try again later.')
+        setIsRequestingHint(false)
       }
     }
-
-    setHintError(lastError)
-    setIsRequestingHint(false)
   }, [problem, code, hints, isRequestingHint, output, testSummary, lastRunAttempted])
 
   // Show answer
