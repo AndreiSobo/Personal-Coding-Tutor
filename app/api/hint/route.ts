@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ hint })
 
     } catch (error: any) {
-        // If HF is paused or times out after 10s, immediately return a 503 to trigger the frontend fallback
+        // If HF is paused or times out after 10s, immediately return a 503 to trigger the frontend fallbacks
         console.warn("Primary HF Endpoint failed or timed out. Instructing client to use Azure Fallback.")
         return NextResponse.json({ error: "Primary engine unavailable. Triggering fallback." }, { status: 503 })
     }
