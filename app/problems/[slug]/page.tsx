@@ -189,6 +189,11 @@ export default function ProblemPage() {
         } else {
           userMessage += `\n\nMy code is not passing the tests. Please analyze my code against the problem description, identify the exact logical or syntax error, and give me a specific, guiding Socratic hint that points me toward the flaw without revealing the direct solution.`
         }
+        if (execution_attempted === false) {
+          userMessage += `\n\nNote: The user's code was NOT executed yet. No runtime error is available. Please focus on static analysis.`
+        } else if (error_message) {
+          userMessage += `\n\nTerminal error output:\n\`\`\`\n${error_message}\n\`\`\`\nPlease use this error to give a more targeted hint.`
+        }
 
         const rawPrompt = `<|im_start|>system\n${SYSTEM_PROMPT}<|im_end|>\n<|im_start|>user\n${userMessage}<|im_end|>\n<|im_start|>assistant\n`
 
@@ -208,7 +213,6 @@ export default function ProblemPage() {
           throw new Error('Fallback Azure endpoint unavailable.')
         }
 
-        setHintsUsed((prev) => prev + 1)
 
         const reader = azureResponse.body.getReader()
         const decoder = new TextDecoder('utf-8')
@@ -225,6 +229,7 @@ export default function ProblemPage() {
         }
 
         setHints((prev) => [...prev, streamedText.trim()])
+        setHintsUsed((prev) => prev + 1)
         setStreamingHint('')
         setIsRequestingHint(false)
 

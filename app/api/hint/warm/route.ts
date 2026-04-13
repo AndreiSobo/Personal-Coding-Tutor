@@ -13,7 +13,7 @@ const HF_TOKEN = process.env.HF_TOKEN!
 export async function GET() {
     try {
         const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 10000) // 10s — enough to trigger wake, not wait for full start
+        const timeout = setTimeout(() => controller.abort(), 10000) // 10s — enough to trigger wake
 
         const response = await fetch(HF_ENDPOINT_URL, {
             method: 'POST',
