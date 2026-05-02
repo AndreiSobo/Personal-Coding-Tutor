@@ -14,16 +14,17 @@ interface CodeEditorProps {
     initialCode?: string
     onChange?: (value: string | undefined) => void
     className?: string
+    editorTheme?: string
 }
 
-export default function CodeEditor({ initialCode = "# Type your code...", onChange, className }: CodeEditorProps) {
+export default function CodeEditor({ initialCode = "# Type your code...", onChange, className, editorTheme = 'vs-dark' }: CodeEditorProps) {
     return (
         <div className={className || "h-[60vh] w-full border border-gray-300 rounded-lg overflow-hidden shadow-sm"}>
             <Editor
                 height="100%"
                 defaultLanguage="python"
                 defaultValue={initialCode}
-                theme="vs-dark"
+                theme={editorTheme}
                 options={{
                     minimap: { enabled: false },
                     fontSize: 14,

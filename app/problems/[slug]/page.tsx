@@ -7,6 +7,8 @@ import CodeEditor from '@/components/CodeEditor'
 import Console from '@/components/Console'
 import usePyodide from '@/hooks/usePyodide'
 import { formatTitle } from '@/utils/formatTitle'
+import ThemeToggle from '@/components/ThemeToggle'
+import { useTheme } from '@/components/ThemeProvider'
 
 interface Problem {
   id: string
@@ -23,6 +25,7 @@ export default function ProblemPage() {
   const { slug } = useParams<{ slug: string }>()
   const router = useRouter()
   const supabase = createClient()
+  const { theme } = useTheme()
 
   // Problem state
   const [problem, setProblem] = useState<Problem | null>(null)
@@ -272,8 +275,8 @@ export default function ProblemPage() {
   // Render
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500">Loading problem...</p>
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
+        <p className="text-gray-600 dark:text-gray-400">Loading problem...</p>
       </div>
     )
   }
@@ -282,57 +285,58 @@ export default function ProblemPage() {
 
   const difficultyColor =
     problem.difficulty === 'Easy'
-      ? 'text-green-600 bg-green-50'
+      ? 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/40'
       : problem.difficulty === 'Medium'
-        ? 'text-yellow-600 bg-yellow-50'
-        : 'text-red-600 bg-red-50'
+        ? 'text-yellow-700 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/40'
+        : 'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/40'
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col">
+    <div className="h-screen bg-gray-50 dark:bg-gray-950 flex flex-col transition-colors">
       {/* Header */}
-      <header className="bg-white border-b px-6 py-3 flex justify-between items-center shadow-sm shrink-0">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-3 flex justify-between items-center shadow-sm shrink-0">
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.push('/dashboard')}
-            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+            className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
           >
             ← Dashboard
           </button>
-          <h1 className="text-lg font-bold text-gray-800">{formatTitle(problem.slug)}</h1>
+          <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">{formatTitle(problem.slug)}</h1>
           <span className={`text-xs font-medium px-2 py-1 rounded ${difficultyColor}`}>
             {problem.difficulty}
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {problem.tags.map((tag) => (
-            <span key={tag} className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+            <span key={tag} className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">
               {tag}
             </span>
           ))}
+          <ThemeToggle />
         </div>
       </header>
 
       {/* Workspace */}
       <main className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-0 overflow-hidden min-h-0">
         {/* Left: Problem description + Hints */}
-        <div className="border-r border-gray-200 overflow-y-auto p-6 flex flex-col">
+        <div className="border-r border-gray-200 dark:border-gray-700 overflow-y-auto p-6 flex flex-col bg-white dark:bg-gray-900">
           {/* Description */}
           <div className="flex-1">
-            <h2 className="text-lg font-semibold mb-4">Problem Description</h2>
-            <pre className="whitespace-pre-wrap text-sm text-gray-700 font-sans leading-relaxed bg-white p-4 rounded border">
+            <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Problem Description</h2>
+            <pre className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200 font-sans leading-relaxed bg-gray-50 dark:bg-gray-800 p-4 rounded border border-gray-200 dark:border-gray-700">
               {problem.description}
             </pre>
           </div>
 
           {/* Hints section */}
-          <div className="mt-6 border-t pt-4 space-y-3">
+          <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
             <div className="flex items-center gap-3">
               <button
                 onClick={handleRequestHint}
                 disabled={isRequestingHint || isSubmitted}
                 className={`px-4 py-2 text-sm rounded-md font-medium transition-colors ${isRequestingHint || isSubmitted
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-purple-100 text-purple-700 hover:bg-purple-200'
+                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                  : 'bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/60'
                   }`}
               >
                 {isRequestingHint && !streamingHint
@@ -344,8 +348,8 @@ export default function ProblemPage() {
                 onClick={handleShowAnswer}
                 disabled={!canShowAnswer || isSubmitted}
                 className={`px-4 py-2 text-sm rounded-md font-medium transition-colors ${canShowAnswer && !isSubmitted
-                  ? 'bg-orange-100 text-orange-700 hover:bg-orange-200'
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  ? 'bg-orange-100 dark:bg-orange-900/40 text-orange-800 dark:text-orange-300 hover:bg-orange-200 dark:hover:bg-orange-900/60'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                   }`}
                 title={!canShowAnswer ? `Use ${3 - hintsUsed} more hint(s) to unlock` : undefined}
               >
@@ -355,14 +359,14 @@ export default function ProblemPage() {
 
             {/* All-tests-passed success message */}
             {hintMessage && (
-              <div className="bg-green-50 border border-green-200 rounded-md px-4 py-3 text-sm text-green-700">
+              <div className="bg-green-50 dark:bg-green-900/30 border border-green-300 dark:border-green-700 rounded-md px-4 py-3 text-sm text-green-800 dark:text-green-300">
                 {hintMessage}
               </div>
             )}
 
             {/* Hint error */}
             {hintError && (
-              <div className="bg-red-50 border border-red-200 rounded-md px-4 py-3 text-sm text-red-700">
+              <div className="bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-md px-4 py-3 text-sm text-red-800 dark:text-red-300">
                 {hintError}
               </div>
             )}
@@ -373,7 +377,7 @@ export default function ProblemPage() {
                 {hints.map((hint, i) => (
                   <div
                     key={i}
-                    className="bg-purple-50 border border-purple-200 rounded-md px-4 py-3 text-sm text-purple-800"
+                    className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-md px-4 py-3 text-sm text-purple-900 dark:text-purple-200"
                   >
                     <span className="font-medium">Hint {i + 1}:</span> {hint}
                   </div>
@@ -383,7 +387,7 @@ export default function ProblemPage() {
 
             {/* Display currently STREAMING hint */}
             {streamingHint && (
-              <div className="bg-purple-50 border border-purple-200 rounded-md px-4 py-3 text-sm text-purple-800">
+              <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-md px-4 py-3 text-sm text-purple-900 dark:text-purple-200">
                 <span className="font-medium">Hint {hintsUsed}:</span> {streamingHint}
                 <span className="animate-pulse font-bold ml-1">_</span>
               </div>
@@ -391,9 +395,9 @@ export default function ProblemPage() {
 
             {/* Display solution */}
             {showSolution && solutionCode && (
-              <div className="bg-orange-50 border border-orange-200 rounded-md p-4">
-                <p className="text-sm font-medium text-orange-800 mb-2">Reference Solution:</p>
-                <pre className="text-sm text-gray-800 font-mono whitespace-pre-wrap bg-white rounded p-3 border">
+              <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-md p-4">
+                <p className="text-sm font-medium text-orange-900 dark:text-orange-300 mb-2">Reference Solution:</p>
+                <pre className="text-sm text-gray-900 dark:text-gray-100 font-mono whitespace-pre-wrap bg-white dark:bg-gray-800 rounded p-3 border border-gray-200 dark:border-gray-700">
                   {solutionCode}
                 </pre>
               </div>
@@ -401,7 +405,7 @@ export default function ProblemPage() {
 
             {/* Solution fetch error */}
             {solutionError && (
-              <div className="bg-red-50 border border-red-200 rounded-md px-4 py-3 text-sm text-red-700">
+              <div className="bg-red-50 dark:bg-red-900/30 border border-red-300 dark:border-red-700 rounded-md px-4 py-3 text-sm text-red-800 dark:text-red-300">
                 {solutionError}
               </div>
             )}
@@ -411,11 +415,11 @@ export default function ProblemPage() {
         {/* Right: Editor + Console */}
         <div className="flex flex-col overflow-hidden min-h-0">
           {/* Editor toolbar */}
-          <div className="flex justify-between items-center px-4 py-2 bg-white border-b shrink-0">
-            <h2 className="font-semibold text-gray-700 text-sm">Solution</h2>
+          <div className="flex justify-between items-center px-4 py-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shrink-0">
+            <h2 className="font-semibold text-gray-700 dark:text-gray-200 text-sm">Solution</h2>
             <div className="flex items-center gap-2">
               {isSubmitted && (
-                <span className="text-sm text-green-600 font-medium mr-2">
+                <span className="text-sm text-green-700 dark:text-green-400 font-medium mr-2">
                   ✓ Submitted!
                 </span>
               )}
@@ -424,7 +428,7 @@ export default function ProblemPage() {
                 onClick={handleRun}
                 disabled={pyodideLoading || isRunning}
                 className={`px-4 py-1.5 rounded-md text-sm font-medium text-white transition-all ${pyodideLoading || isRunning
-                  ? 'bg-gray-400 cursor-not-allowed'
+                  ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed'
                   : 'bg-green-600 hover:bg-green-700'
                   }`}
               >
@@ -436,7 +440,7 @@ export default function ProblemPage() {
                 disabled={!testSummary?.allPassed || isSubmitted || isSubmitting}
                 className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${testSummary?.allPassed && !isSubmitted
                   ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
                   }`}
               >
                 {isSubmitting ? 'Submitting...' : isSubmitted ? 'Submitted ✓' : 'Submit'}
@@ -450,15 +454,15 @@ export default function ProblemPage() {
               initialCode={code}
               onChange={(val) => setCode(val || '')}
               className="h-full w-full overflow-hidden"
+              editorTheme={theme === 'dark' ? 'vs-dark' : 'vs'}
             />
           </div>
 
           {/* Console output */}
-          <div className="h-48 border-t shrink-0">
+          <div className="h-48 border-t border-gray-200 dark:border-gray-700 shrink-0">
             <Console
               output={output}
               isLoading={pyodideLoading}
-              className="bg-black text-green-400 font-mono p-4 h-full overflow-y-auto"
             />
           </div>
         </div>
