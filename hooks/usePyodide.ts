@@ -14,6 +14,7 @@ export interface TestResult {
   expected?: string
   actual?: string
   error?: string
+  prints?: string
 }
 
 export interface TestSummary {
@@ -215,29 +216,39 @@ ${userCode}
 
 import json as __json
 import traceback as __traceback
+import sys as __sys
+import io as __io
 
 __test_cases = __json.loads(__pact_test_json)
 __entry_point = __pact_entry_point
 __results = []
 
 for __i, __tc in enumerate(__test_cases):
+    __stdout_buf = __io.StringIO()
+    __old_stdout = __sys.stdout
+    __sys.stdout = __stdout_buf
     try:
         __actual = eval(f"{__entry_point}({__tc['input']})")
         __expected = eval(__tc["output"])
         __passed = __actual == __expected
+        __sys.stdout = __old_stdout
+        __prints = __stdout_buf.getvalue().rstrip('\n')
         __results.append(__json.dumps({
             "index": __i,
             "passed": __passed,
             "expected": __tc["output"],
-            "actual": repr(__actual)
+            "actual": repr(__actual),
+            "prints": __prints
         }))
     except Exception as __e:
-        # Capture the full traceback, not just the error string
+        __sys.stdout = __old_stdout
+        __prints = __stdout_buf.getvalue().rstrip('\n')
         __error_trace = __traceback.format_exc()
         __results.append(__json.dumps({
             "index": __i,
             "passed": False,
-            "error": __error_trace
+            "error": __error_trace,
+            "prints": __prints
         }))
 
 print("__PACT_TEST_RESULTS__")
@@ -263,10 +274,7 @@ print("__PACT_TEST_RESULTS_END__")
         return null
       }
 
-      const markerIndex = capturedOutput.indexOf('__PACT_TEST_RESULTS__')
-      const userPrints = markerIndex > 0 ? capturedOutput.slice(0, markerIndex) : []
-
-      setOutput([...userPrints, ...formatTestOutput(summary, MAX_TEST_CASES)])
+      setOutput(formatTestOutput(summary, MAX_TEST_CASES))
       setTestSummary(summary)
       return summary
 

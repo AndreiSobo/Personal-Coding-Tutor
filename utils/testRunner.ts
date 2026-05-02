@@ -44,8 +44,10 @@ export function formatTestOutput(summary: TestSummary, maxTestCases: number): st
         for (const f of failures) {
             if (f.error) {
                 outputLines.push(`  Test ${f.index + 1}: Error — ${f.error}`)
+                if (f.prints) outputLines.push(`    Printed: ${f.prints}`)
             } else {
                 outputLines.push(`  Test ${f.index + 1}: FAILED`)
+                if (f.prints) outputLines.push(`    Printed: ${f.prints}`)
                 outputLines.push(`    Expected: ${f.expected}`)
                 outputLines.push(`    Got:      ${f.actual}`)
             }
