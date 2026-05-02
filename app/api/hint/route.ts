@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
+import { sanitize, buildUserMessage } from '@/utils/hint'
 
 const HF_ENDPOINT_URL = process.env.HF_ENDPOINT_URL!
 const HF_TOKEN = process.env.HF_TOKEN!
@@ -24,24 +25,13 @@ export async function POST(request: NextRequest) {
 
     const { problem_description, user_code, previous_hints = [], error_message, console_tail, execution_attempted } = body
 
-    const sanitize = (s: unknown, limit = 3000) => String(s || '').slice(0, limit).replace(/`/g, "'")
-    const safeError = sanitize(error_message)
-    const safeConsole = sanitize(console_tail)
-
-    let userMessage = `Problem:\n${problem_description}\n\nMy code:\n\`\`\`python\n${user_code}\n\`\`\``
-
-    if (previous_hints.length > 0) {
-        const hintsContext = previous_hints.map((h: string, i: number) => `${i + 1}. ${h}`).join('\n')
-        userMessage += `\n\nI have already received the following hints:\n${hintsContext}\n\nThese hints were not enough. Can you give me a different hint that approaches the problem from another angle?`
-    } else {
-        userMessage += `\n\nMy code is not passing the tests. Please analyze my code against the problem description, identify the exact logical or syntax error, and give me a specific, guiding Socratic hint that points me toward the flaw without revealing the direct solution.`
-    }
-
-    if (execution_attempted === false) {
-        userMessage += `\n\nNote: The user's code was NOT executed yet. No runtime error is available. Please focus on static analysis.`
-    } else if (safeError) {
-        userMessage += `\n\nTerminal error output:\n\`\`\`\n${safeError}\n\`\`\`\nPlease use this error to give a more targeted hint.`
-    }
+    const userMessage = buildUserMessage({
+        problem_description,
+        user_code,
+        previous_hints,
+        error_message: sanitize(error_message),
+        execution_attempted,
+    })
 
     const prompt = [
         `<|im_start|>system\n${SYSTEM_PROMPT}<|im_end|>`,

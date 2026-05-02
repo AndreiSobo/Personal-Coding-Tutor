@@ -33,7 +33,7 @@ export default function LoginPage() {
                     supabaseClient={supabase}
                     appearance={{ theme: ThemeSupa }}
                     theme="light"
-                    providers={[]} // We keep it simple: Email/Password only for now
+                    providers={[]}
                     redirectTo={`${window.location.origin}/auth/callback`}
                 />
             </div>

@@ -35,8 +35,7 @@ export default function DashboardPage() {
   const router = useRouter()
   const supabase = createClient()
 
-  // Fire-and-forget: wake the PACT model container on dashboard load
-  // so it's ready by the time the user needs a hint
+  // Wake the PACT model container on dashboard load
   useEffect(() => {
     fetch('/api/hint/warm').catch(() => { })
   }, [])

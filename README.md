@@ -26,6 +26,7 @@ The WebApp can be accessed here: https://personal-coding-tutor.vercel.app/
 - **Model**: Qwen 2.5 7B Instruct (Fine-tuned via QLoRA)
 - **Data**: Synthetic Socratic dataset generated via Claude/GPT-4
 - **Inference**: Hugging Face Inference Endpoints
+- **Fallback inference**: Azure Virtual Machine
 
 ## Project Structure
 

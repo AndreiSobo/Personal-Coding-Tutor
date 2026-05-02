@@ -1,5 +1,5 @@
 'use client'
-
+import { parseTestResults, formatTestOutput } from '@/utils/testRunner'
 import { useEffect, useState, useCallback } from 'react'
 
 declare global {
@@ -188,20 +188,7 @@ export default function usePyodide() {
     }
   }, [pyodide])
 
-  /**
-   * Run user code against structured input/output test cases.
-   *
-   * The input_output format from the dataset uses Python expression strings:
-   *   input:  "nums = [3,3], target = 6"
-   *   output: "[0, 1]"
-   *
-   * The harness evaluates these as Python expressions:
-   *   eval("Solution().twoSum(nums = [3,3], target = 6)")
-   *
-   * The preamble provides tree_node(), list_node() and other helpers that are
-   * available during eval, so test inputs that use these (e.g. for Tree problems)
-   * will work correctly.
-   */
+
   const runTests = useCallback(async (
     userCode: string,
     entryPoint: string,
@@ -270,67 +257,19 @@ print("__PACT_TEST_RESULTS_END__")
 
       await pyodide.runPythonAsync(harness)
 
-      // Parse structured results from output
-      const resultsStart = capturedOutput.indexOf('__PACT_TEST_RESULTS__')
-      const resultsEnd = capturedOutput.indexOf('__PACT_TEST_RESULTS_END__')
-
-      if (resultsStart === -1 || resultsEnd === -1) {
+      const summary = parseTestResults(capturedOutput, inputOutput.length)
+      if (!summary) {
         setOutput(capturedOutput)
         return null
       }
 
-      const resultLines = capturedOutput.slice(resultsStart + 1, resultsEnd)
-      const results: TestResult[] = resultLines.map((line) => {
-        try {
-          return JSON.parse(line)
-        } catch {
-          return { index: -1, passed: false, error: `Failed to parse: ${line}` }
-        }
-      })
+      const markerIndex = capturedOutput.indexOf('__PACT_TEST_RESULTS__')
+      const userPrints = markerIndex > 0 ? capturedOutput.slice(0, markerIndex) : []
 
-      const passed = results.filter((r) => r.passed).length
-      const summary: TestSummary = {
-        passed,
-        failed: results.length - passed,
-        total: inputOutput.length,
-        results,
-        allPassed: passed === results.length && results.length > 0,
-      }
-
-      // Format output for the console
-      const outputLines: string[] = []
-
-      if (summary.allPassed) {
-        outputLines.push(`✓ All ${summary.passed}/${Math.min(MAX_TEST_CASES, summary.total)} tests passed!`)
-        if (summary.total > MAX_TEST_CASES) {
-          outputLines.push(`  (${MAX_TEST_CASES} of ${summary.total} total tests run)`)
-        }
-      } else {
-        outputLines.push(`✗ ${summary.passed}/${results.length} tests passed`)
-        outputLines.push('')
-
-        // Show details of failing tests (max 3)
-        const failures = results.filter((r) => !r.passed).slice(0, 3)
-        for (const f of failures) {
-          if (f.error) {
-            outputLines.push(`  Test ${f.index + 1}: Error — ${f.error}`)
-          } else {
-            outputLines.push(`  Test ${f.index + 1}: FAILED`)
-            outputLines.push(`    Expected: ${f.expected}`)
-            outputLines.push(`    Got:      ${f.actual}`)
-          }
-          outputLines.push('')
-        }
-
-        const remainingFailures = results.filter((r) => !r.passed).length - failures.length
-        if (remainingFailures > 0) {
-          outputLines.push(`  ... and ${remainingFailures} more failing test(s)`)
-        }
-      }
-
-      setOutput(outputLines)
+      setOutput([...userPrints, ...formatTestOutput(summary, MAX_TEST_CASES)])
       setTestSummary(summary)
       return summary
+
     } catch (error: any) {
       const errorMsg = error.message || String(error)
       setOutput([`Error: ${errorMsg}`])
