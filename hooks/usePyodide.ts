@@ -232,7 +232,7 @@ for __i, __tc in enumerate(__test_cases):
         __expected = eval(__tc["output"])
         __passed = __actual == __expected
         __sys.stdout = __old_stdout
-        __prints = __stdout_buf.getvalue().rstrip('\n')
+        __prints = __stdout_buf.getvalue().rstrip('\\n')
         __results.append(__json.dumps({
             "index": __i,
             "passed": __passed,
@@ -242,7 +242,7 @@ for __i, __tc in enumerate(__test_cases):
         }))
     except Exception as __e:
         __sys.stdout = __old_stdout
-        __prints = __stdout_buf.getvalue().rstrip('\n')
+        __prints = __stdout_buf.getvalue().rstrip('\\n')
         __error_trace = __traceback.format_exc()
         __results.append(__json.dumps({
             "index": __i,
