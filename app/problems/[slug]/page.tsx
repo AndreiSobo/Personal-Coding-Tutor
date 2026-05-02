@@ -35,6 +35,9 @@ export default function ProblemPage() {
   // Pyodide
   const { runTests, output, isLoading: pyodideLoading, isRunning, testSummary } = usePyodide()
 
+  // Mobile tab
+  const [activeTab, setActiveTab] = useState<'problem' | 'code'>('problem')
+
   // Submit state
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -305,40 +308,65 @@ export default function ProblemPage() {
         : 'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/40'
 
   return (
-    <div className="h-screen bg-gray-50 dark:bg-gray-950 flex flex-col transition-colors">
+    <div className="h-dvh bg-gray-50 dark:bg-gray-950 flex flex-col transition-colors overflow-hidden">
       {/* Header */}
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-6 py-3 flex justify-between items-center shadow-sm shrink-0">
-        <div className="flex items-center gap-4">
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-2 flex justify-between items-center shadow-sm shrink-0 gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           <button
             onClick={() => router.push('/dashboard')}
-            className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
+            className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium shrink-0"
           >
-            ← Dashboard
+            ← <span className="hidden sm:inline">Dashboard</span>
           </button>
-          <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">{formatTitle(problem.slug)}</h1>
-          <span className={`text-xs font-medium px-2 py-1 rounded ${difficultyColor}`}>
+          <h1 className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">{formatTitle(problem.slug)}</h1>
+          <span className={`text-xs font-medium px-2 py-0.5 rounded shrink-0 ${difficultyColor}`}>
             {problem.difficulty}
           </span>
           {solvedCount !== null && (
-            <span className="text-xs text-gray-500 dark:text-gray-400">
+            <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0 hidden sm:inline">
               {solvedCount} {problem.difficulty.toLowerCase()} solved
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3">
-          {problem.tags.map((tag) => (
-            <span key={tag} className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">
-              {tag}
-            </span>
-          ))}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Tags hidden on mobile to save space */}
+          <div className="hidden md:flex items-center gap-2">
+            {problem.tags.map((tag) => (
+              <span key={tag} className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">
+                {tag}
+              </span>
+            ))}
+          </div>
           <ThemeToggle />
         </div>
       </header>
 
+      {/* Mobile tab bar — only visible below lg */}
+      <div className="lg:hidden flex border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shrink-0">
+        <button
+          onClick={() => setActiveTab('problem')}
+          className={`flex-1 py-2 text-sm font-medium transition-colors ${activeTab === 'problem'
+            ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+            }`}
+        >
+          Problem
+        </button>
+        <button
+          onClick={() => setActiveTab('code')}
+          className={`flex-1 py-2 text-sm font-medium transition-colors ${activeTab === 'code'
+            ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+            }`}
+        >
+          Code
+        </button>
+      </div>
+
       {/* Workspace */}
       <main className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-0 overflow-hidden min-h-0">
         {/* Left: Problem description + Hints */}
-        <div className="border-r border-gray-200 dark:border-gray-700 overflow-y-auto p-6 flex flex-col bg-white dark:bg-gray-900">
+        <div className={`border-r border-gray-200 dark:border-gray-700 overflow-y-auto p-4 lg:p-6 flex flex-col bg-white dark:bg-gray-900 ${activeTab === 'problem' ? 'block' : 'hidden'} lg:block`}>
           {/* Description */}
           <div className="flex-1">
             <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Problem Description</h2>
@@ -347,9 +375,25 @@ export default function ProblemPage() {
             </pre>
           </div>
 
+          {/* Solved count on mobile (below tags are hidden in header) */}
+          {solvedCount !== null && (
+            <p className="sm:hidden mt-4 text-xs text-gray-500 dark:text-gray-400">
+              {solvedCount} {problem.difficulty.toLowerCase()} problems solved
+            </p>
+          )}
+
+          {/* Tags on mobile */}
+          <div className="md:hidden flex flex-wrap gap-2 mt-3">
+            {problem.tags.map((tag) => (
+              <span key={tag} className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 px-2 py-1 rounded">
+                {tag}
+              </span>
+            ))}
+          </div>
+
           {/* Hints section */}
           <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={handleRequestHint}
                 disabled={isRequestingHint || isSubmitted}
@@ -432,7 +476,7 @@ export default function ProblemPage() {
         </div>
 
         {/* Right: Editor + Console */}
-        <div className="flex flex-col overflow-hidden min-h-0">
+        <div className={`flex flex-col overflow-hidden min-h-0 ${activeTab === 'code' ? 'flex' : 'hidden'} lg:flex`}>
           {/* Editor toolbar */}
           <div className="flex justify-between items-center px-4 py-2 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 shrink-0">
             <h2 className="font-semibold text-gray-700 dark:text-gray-200 text-sm">Solution</h2>
@@ -478,7 +522,7 @@ export default function ProblemPage() {
           </div>
 
           {/* Console output */}
-          <div className="h-48 border-t border-gray-200 dark:border-gray-700 shrink-0">
+          <div className="h-40 lg:h-48 border-t border-gray-200 dark:border-gray-700 shrink-0">
             <Console
               output={output}
               isLoading={pyodideLoading}

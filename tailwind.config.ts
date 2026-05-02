@@ -8,7 +8,11 @@ const config: Config = {
         "./utils/**/*.{js,ts,jsx,tsx,mdx}",
     ],
     theme: {
-        extend: {},
+        extend: {
+            height: {
+                dvh: '100dvh',
+            },
+        },
     },
     plugins: [],
 };
