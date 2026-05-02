@@ -39,6 +39,9 @@ export default function ProblemPage() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  // Progress tracking
+  const [solvedCount, setSolvedCount] = useState<number | null>(null)
+
   // Hint state
   const [hints, setHints] = useState<string[]>([])
   const [streamingHint, setStreamingHint] = useState<string>('') // NEW: Holds the active stream text
@@ -78,6 +81,17 @@ export default function ProblemPage() {
       setProblem(data as Problem)
       setCode(data.starter_code || '')
       setLoading(false)
+
+      // Count how many problems of this difficulty the user has already solved
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { count } = await supabase
+          .from('user_progress')
+          .select('id, content_problems!inner(difficulty)', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('content_problems.difficulty', data.difficulty)
+        setSolvedCount(count ?? 0)
+      }
     }
 
     if (slug) fetchProblem()
@@ -305,6 +319,11 @@ export default function ProblemPage() {
           <span className={`text-xs font-medium px-2 py-1 rounded ${difficultyColor}`}>
             {problem.difficulty}
           </span>
+          {solvedCount !== null && (
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              {solvedCount} {problem.difficulty.toLowerCase()} solved
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3">
           {problem.tags.map((tag) => (
